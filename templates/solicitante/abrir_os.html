@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}Abrir OS{% endblock %}
+{% block content %}
+<h2>Abertura de Ordem de Serviço</h2>
+<form method="POST">
+    <label for="erro">Descrição do erro:</label>
+    <textarea name="erro" required></textarea>
+
+    <label for="classe">Classificação:</label>
+    <select name="classe" required>
+        <option value="urgente">Urgente</option>
+        <option value="programado">Programado</option>
+    </select>
+
+    <button type="submit">Abrir OS</button>
+</form>
+{% endblock %}

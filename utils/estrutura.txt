@@ -1,0 +1,20 @@
+projeto_os/
+├── app.py
+├── models.py              # Conexão e funções com o banco SQLite
+├── static/
+│   └── style.css          # Estilo CSS
+├── templates/
+│   ├── base.html
+│   ├── login.html
+│   ├── solicitante/
+│   │   ├── abrir_os.html         # Formulário para abertura da OS
+│   │   └── sucesso.html          # Confirmação de OS aberta com sucesso
+│   ├── manutencao/
+│   │   ├── listar_os.html        # Lista de OS recebidas
+│   │   ├── detalhe_os.html       # Detalhe da OS e ações (realizar, preencher, marcar como resolvida)
+│   │
+│   ├── administrador/
+│   │   ├── dashboard.html        # Dashboard com gráficos e dados estatísticos
+│   │   └── detalhes_os.html      # Visualização detalhada de OS específica
+├── db/
+│   └── os.db              # Banco de dados SQLite

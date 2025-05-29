@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+{% block title %}Ordens de Serviço{% endblock %}
+{% block content %}
+<h2>Ordens de Serviço</h2>
+<table>
+    <tr>
+        <th>#</th><th>Erro</th><th>Data</th><th>Classe</th><th>Status</th><th>Ações</th>
+    </tr>
+    {% for os in ordens %}
+    <tr>
+        <td>{{ os.id }}</td>
+        <td>{{ os.erro }}</td>
+        <td>{{ os.data }}</td>
+        <td>{{ os.classe }}</td>
+        <td>{{ os.status }}</td>
+        <td><a href="/manutencao/os/{{ os.id }}">Ver</a></td>
+    </tr>
+    {% endfor %}
+</table>
+{% endblock %}

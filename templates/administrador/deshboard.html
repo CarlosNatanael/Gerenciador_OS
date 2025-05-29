@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h2>Dashboard do Administrador</h2>
+<div>
+    <p>Total de OSs: {{ total_os }}</p>
+    <p>Tempo médio de reparo: {{ tempo_medio }} min</p>
+    <p>OSs pendentes: {{ os_pendentes }}</p>
+    <!-- Gráficos com Chart.js podem ser incluídos aqui -->
+</div>
+{% endblock %}
