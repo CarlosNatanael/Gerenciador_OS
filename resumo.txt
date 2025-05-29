@@ -1,0 +1,53 @@
+Resumo do Sistema de OS Web – Premix
+*Objetivo do Sistema*
+O sistema visa gerenciar e organizar as Ordens de Serviço (OS) de manutenção elétrica na empresa, garantindo agilidade no atendimento, clareza nas responsabilidades e um controle efetivo por parte da administração.
+
+1. Tipos de Usuários
+*Solicitante*
+• Responsável por abrir uma nova OS no sistema.
+• Informa a classe da OS (Urgente ou Programada), descreve os erros e fornece a data de ocorrência.
+• Seu papel termina após a abertura da OS.
+
+*Manutenção Elétrica*
+• Responsável por visualizar as OS recebidas, realizar os reparos e preencher o que foi feito.
+• Acompanha o fluxo da manutenção:
+    • Se a OS for Urgente, inicia a manutenção imediatamente.
+    • Se a OS for Programada, passa primeiro por análise e agendamento.
+• Se o problema não for resolvido, a OS retorna para nova análise e tentativa.
+
+*Administrador*
+• Possui visão completa do sistema.
+• Pode consultar:
+    • Quantas OS foram abertas.
+    • Tempo médio de reparo.
+    • OS resolvidas ou pendentes.
+    • Dados completos sobre problemas e soluções.
+
+2. Fluxo da OS
+*Abertura*
+• Um solicitante preenche um formulário indicando o erro, data e urgência.
+
+*Classe Urgente*
+1. OS é enviada diretamente à Manutenção.
+2. A equipe realiza o reparo.
+3.Indica se o problema foi resolvido:
+   • Se sim, registra o que foi feito e finaliza.
+   • Se não, retorna para nova tentativa de manutenção.
+
+*Classe Programado*
+1. OS passa por análise pela Manutenção.
+2. Caso seja válida, é agendada.
+3. Após o agendamento, a manutenção é realizada.
+4. Mesma lógica de resolução se aplica.
+
+3. *Benefícios para a Empresa*
+• Centralização de informações sobre manutenções.
+• Rastreamento completo das ordens: de abertura à conclusão.
+• Acompanhamento de desempenho da equipe técnica.
+• Redução de falhas e retrabalho com histórico de erros e soluções.
+
+*Tecnologia Proposta*
+• Sistema Web responsivo (acessível por computador e celular).
+• Interface amigável e funcional para cada tipo de usuário.
+• Banco de dados seguro com registros detalhados de cada OS.
+• Painel administrativo com gráficos e estatísticas de desempenho.
