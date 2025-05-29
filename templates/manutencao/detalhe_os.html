@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes da OS #{{ os.id }}{% endblock %}
+
+{% block content %}
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">OS #{{ os.id }} - {{ os.equipamento }}</h5>
+        <span class="badge bg-{% if os.prioridade == 'urgente' %}danger{% else %}primary{% endif %}">
+            {{ os.prioridade|capitalize }}
+        </span>
+    </div>
+    <div class="card-body">
+        <div class="row mb-3">
+            <div class="col-md-6">
+                <h6>Informações Básicas</h6>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Data Abertura:</strong> {{ os.data }}
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Solicitante:</strong> {{ solicitante.nome }}
+                    </li>
+                    {% if tecnico %}
+                    <li class="list-group-item">
+                        <strong>Técnico Responsável:</strong> {{ tecnico.nome }}
+                    </li>
+                    {% endif %}
+                    <li class="list-group-item">
+                        <strong>Status:</strong> 
+                        <span class="badge rounded-pill bg-{% if os.status == 'Aberta' %}warning{% elif os.status == 'Concluída' %}success{% else %}info{% endif %}">
+                            {{ os.status }}
+                        </span>
+                    </li>
+                </ul>
+            </div>
+            <div class="col-md-6">
+                <h6>Descrição do Problema</h6>
+                <div class="border p-3 bg-light rounded">
+                    {{ os.problema }}
+                </div>
+            </div>
+        </div>
+
+        {% if os.status != 'Concluída' %}
+        <form method="POST" action="{{ url_for('concluir_os', id=os.id) }}">
+            <div class="mb-3">
+                <label for="solucao" class="form-label">Solução Aplicada</label>
+                <textarea class="form-control" id="solucao" name="solucao" rows="3" required></textarea>
+            </div>
+            <div class="d-flex justify-content-end">
+                <button type="submit" class="btn btn-success">
+                    <i class="bi bi-check-circle"></i> Marcar como Concluída
+                </button>
+            </div>
+        </form>
+        {% else %}
+        <div class="card">
+            <div class="card-header bg-light">
+                <h6>Solução Aplicada</h6>
+            </div>
+            <div class="card-body">
+                <p>{{ os.solucao }}</p>
+                <p class="text-muted mb-0">
+                    <small>Tempo de reparo: {{ os.tempo_reparo }} minutos</small>
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<a href="{{ url_for('manutencao_dashboard') }}" class="btn btn-outline-secondary">
+    <i class="bi bi-arrow-left"></i> Voltar para lista
+</a>
+{% endblock %}

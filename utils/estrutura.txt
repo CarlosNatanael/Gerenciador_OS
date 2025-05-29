@@ -1,6 +1,5 @@
 projeto_os/
 ├── app.py
-├── models.py              # Conexão e funções com o banco SQLite
 ├── static/
 │   └── style.css          # Estilo CSS
 ├── templates/
@@ -16,5 +15,5 @@ projeto_os/
 │   ├── administrador/
 │   │   ├── dashboard.html        # Dashboard com gráficos e dados estatísticos
 │   │   └── detalhes_os.html      # Visualização detalhada de OS específica
-├── db/
-│   └── os.db              # Banco de dados SQLite
+└── db/
+    └── os.db              # Banco de dados SQLite

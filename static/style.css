@@ -1,0 +1,162 @@
+/* Estilos gerais */
+body {
+    background-color: #f8f9fa;
+}
+
+/* Navbar personalizada */
+.navbar {
+    box-shadow: 0 2px 4px rgba(0,0,0,.1);
+}
+
+/* Cards */
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: none;
+}
+
+.card-header {
+    font-weight: 500;
+}
+
+/* Tabelas */
+.table th {
+    font-weight: 600;
+}
+
+/* Badges */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Formulários */
+.form-control:focus, .form-select:focus {
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+}
+
+/* Estilos para os templates novos */
+.card-header-tabs .nav-link {
+    color: #495057;
+    font-weight: 500;
+}
+
+.card-header-tabs .nav-link.active {
+    color: #0d6efd;
+    background-color: transparent;
+    border-bottom: 3px solid #0d6efd;
+}
+
+.tab-content {
+    padding-top: 1rem;
+}
+
+.list-group-item h6 {
+    font-weight: 500;
+}
+
+/* Ícones Bootstrap */
+.bi {
+    margin-right: 0.5rem;
+    vertical-align: -0.125em;
+}
+
+/* Responsividade para tabs */
+@media (max-width: 576px) {
+    .nav-tabs .nav-item {
+        width: 100%;
+    }
+}
+
+/* Estilos para o dashboard */
+.card {
+    box-shadow: 0 0.15rem 0.5rem rgba(0, 0, 0, 0.1);
+    margin-bottom: 1.5rem;
+    border: none;
+}
+
+.card-header {
+    font-weight: 600;
+}
+
+.bg-light {
+    background-color: #f8f9fa!important;
+}
+
+.text-muted {
+    color: #6c757d!important;
+}
+
+/* Espaçamentos */
+.mb-4 {
+    margin-bottom: 1.5rem!important;
+}
+
+/* Tabelas */
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* Botões com ícones */
+.btn i {
+    margin-right: 0.5rem;
+}
+
+/* Estilos para a tabela de OS */
+.table-responsive {
+    max-height: 600px;
+    overflow-y: auto;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 10;
+}
+
+/* Badges de status */
+.badge.bg-success { background-color: #28a745!important; }
+.badge.bg-warning { background-color: #ffc107!important; color: #212529; }
+.badge.bg-info { background-color: #17a2b8!important; }
+.badge.bg-danger { background-color: #dc3545!important; }
+
+/* Cartões de estatísticas */
+.card-body h3 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Estilos para detalhes da OS */
+.table-borderless td, .table-borderless th {
+    border: none;
+    padding: 0.5rem;
+}
+
+.bg-light {
+    background-color: #f8f9fa!important;
+}
+
+.text-muted {
+    color: #6c757d!important;
+}
+
+.list-group-item {
+    border-left: none;
+    border-right: none;
+}
+
+.list-group-item:first-child {
+    border-top: none;
+}
+
+.list-group-item:last-child {
+    border-bottom: none;
+}

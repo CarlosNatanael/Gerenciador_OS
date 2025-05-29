@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Detalhes OS #{{ os.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2>Detalhes da OS #{{ os.id }}</h2>
+        <a href="{{ url_for('admin_dashboard') }}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left"></i> Voltar
+        </a>
+    </div>
+
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">{{ os.equipamento }}</h5>
+        </div>
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <h6>Informações Básicas</h6>
+                    <table class="table table-borderless">
+                        <tr>
+                            <th width="40%">Solicitante:</th>
+                            <td>{{ solicitante.nome }} ({{ solicitante.email }})</td>
+                        </tr>
+                        {% if tecnico %}
+                        <tr>
+                            <th>Técnico:</th>
+                            <td>{{ tecnico.nome }} ({{ tecnico.email }})</td>
+                        </tr>
+                        {% endif %}
+                        <tr>
+                            <th>Data Abertura:</th>
+                            <td>{{ os.data }}</td>
+                        </tr>
+                        <tr>
+                            <th>Prioridade:</th>
+                            <td>
+                                <span class="badge bg-{% if os.prioridade == 'urgente' %}danger{% elif os.prioridade == 'alta' %}warning{% else %}primary{% endif %}">
+                                    {{ os.prioridade }}
+                                </span>
+                            </td>
+                        </tr>
+                        <tr>
+                            <th>Status:</th>
+                            <td>
+                                <span class="badge bg-{% if os.status == 'Concluída' %}success{% elif os.status == 'Aberta' %}warning{% else %}info{% endif %}">
+                                    {{ os.status }}
+                                </span>
+                            </td>
+                        </tr>
+                        {% if os.local %}
+                        <tr>
+                            <th>Local:</th>
+                            <td>{{ os.local }}</td>
+                        </tr>
+                        {% endif %}
+                        {% if os.setor %}
+                        <tr>
+                            <th>Setor:</th>
+                            <td>{{ os.setor }}</td>
+                        </tr>
+                        {% endif %}
+                    </table>
+                </div>
+                <div class="col-md-6">
+                    <h6>Descrição do Problema</h6>
+                    <div class="border p-3 bg-light rounded mb-3">
+                        {{ os.problema }}
+                    </div>
+                    
+                    {% if os.solucao %}
+                    <h6>Solução Aplicada</h6>
+                    <div class="border p-3 bg-light rounded">
+                        {{ os.solucao }}
+                        {% if os.tempo_reparo %}
+                        <div class="mt-2 text-muted">
+                            <small>Tempo de reparo: {{ os.tempo_reparo }} minutos</small>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Histórico de Alterações -->
+    <div class="card">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Histórico de Alterações</h5>
+        </div>
+        <div class="card-body">
+            {% if historico %}
+            <div class="list-group">
+                {% for item in historico %}
+                <div class="list-group-item">
+                    <div class="d-flex justify-content-between">
+                        <h6 class="mb-1">{{ item.acao }}</h6>
+                        <small>{{ item.data_alteracao }}</small>
+                    </div>
+                    <p class="mb-1">Por: {{ item.usuario_nome }}</p>
+                    {% if item.observacao %}
+                    <p class="mb-1 text-muted"><small>{{ item.observacao }}</small></p>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted">Nenhum histórico registrado para esta OS.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
