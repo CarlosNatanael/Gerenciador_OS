@@ -77,10 +77,11 @@ def logout():
 
 
 # --- SOLICITANTE ---
-@app.route('/solicitante/abrir', methods=['GET', 'POST'])
+@app.route('/solicitante/abrir', methods=['GET', 'POST']) # Considere renomear a rota para algo mais genérico como /os/abrir se preferir
 def abrir_os():
-    if session.get('tipo') != 'solicitante':
-        return redirect(url_for('login'))
+    if session.get('tipo') not in ['solicitante', 'admin']: # MODIFICADO AQUI
+        flash('Acesso não autorizado para esta funcionalidade.', 'danger')
+        return redirect(url_for('login')) # Ou redirecionar para o dashboard apropriado
 
     if request.method == 'POST':
         equipamento = request.form.get('equipamento', '').strip()
@@ -91,7 +92,10 @@ def abrir_os():
         
         if not equipamento or not problema:
             flash('Preencha todos os campos obrigatórios.', 'danger')
-            return render_template('solicitante/abrir_os.html')
+            # Se o admin estiver abrindo, talvez ele deva ser redirecionado para a mesma página de abrir_os
+            # e não para a do solicitante especificamente, caso os templates sejam diferentes.
+            # Como o template é o mesmo (solicitante/abrir_os.html), isso deve funcionar.
+            return render_template('solicitante/abrir_os.html') 
         
         data_abertura = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
@@ -99,6 +103,8 @@ def abrir_os():
             conn = get_db()
             cursor = conn.cursor()
             
+            # O user_id da sessão será usado como solicitante_id,
+            # o que é correto, pois o admin é o solicitante neste caso.
             cursor.execute("SELECT id FROM usuarios WHERE usuario = ?", (session['usuario'],))
             user = cursor.fetchone()
             
@@ -110,7 +116,11 @@ def abrir_os():
             
             conn.commit()
             flash('Ordem de serviço enviada com sucesso.', 'success')
-            return redirect(url_for('abrir_os'))
+            # Após o admin abrir uma OS, ele pode ser redirecionado para o dashboard dele ou para a página de abrir_os novamente
+            if session.get('tipo') == 'admin':
+                return redirect(url_for('admin_dashboard')) # Ou para 'abrir_os' se quiser abrir outra
+            else:
+                return redirect(url_for('abrir_os'))
             
         except sqlite3.Error as e:
             conn.rollback()
@@ -118,6 +128,7 @@ def abrir_os():
         finally:
             conn.close()
     
+    # O mesmo template 'solicitante/abrir_os.html' pode ser usado por ambos
     return render_template('solicitante/abrir_os.html')
 
 @app.route('/solicitante/minhas_os')
