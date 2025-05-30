@@ -505,7 +505,7 @@ def detalhe_os_admin(id):
             'prioridade': os_data['prioridade'],
             'status': os_data['status'],
             'data': os_data['data'],
-            'solucao': os_data['solucao'] if 'solucao' in os_data and os_data['solucao'] is not None else None,
+            'solucao': os_data['solucao'],
             'tempo_reparo': os_data['tempo_reparo'] if 'tempo_reparo' in os_data and os_data['tempo_reparo'] is not None else None,
             'inicio': os_data['inicio'] if 'inicio' in os_data and os_data['inicio'] is not None else None,
             'fim': os_data['fim'] if 'fim' in os_data and os_data['fim'] is not None else None,
