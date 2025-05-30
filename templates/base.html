@@ -1,6 +1,5 @@
 <!DOCTYPE html>
-<html lang="pt-br">
-<head>
+<html lang="pt-br" data-bs-theme="light"> <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema OS - {% block title %}{% endblock %}</title>
@@ -10,35 +9,9 @@
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
         body {
-            padding-top: 56px; /* Altura da navbar fixa no topo */
-            background-color: #f8f9fa; /* Um fundo suave para a página */
+            padding-top: 56px;
         }
-        .navbar-brand {
-            font-weight: 600;
-        }
-        .offcanvas-start {
-            width: 280px; /* Largura do menu lateral */
-        }
-        .offcanvas-body .nav-link {
-            color: #343a40; /* Cor escura para links no offcanvas claro */
-            padding: 0.75rem 1rem;
-        }
-        .offcanvas-body .nav-link:hover,
-        .offcanvas-body .nav-link.active { /* Para link ativo, se você implementar essa lógica */
-            background-color: #e9ecef;
-            color: #0d6efd; /* Cor primária do Bootstrap para destaque */
-        }
-        .offcanvas-body .nav-link .bi {
-            margin-right: 0.75rem;
-            font-size: 1.1rem;
-            vertical-align: text-bottom;
-        }
-        .dropdown-item .bi {
-             margin-right: 0.5rem;
-        }
-        main.container {
-            padding-bottom: 2rem; /* Espaço no final do conteúdo principal */
-        }
+        /* Outros estilos inline que você tinha podem ser movidos para style.css se preferir */
     </style>
 </head>
 <body>
@@ -47,9 +20,7 @@
             <button class="btn btn-primary" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu" aria-label="Toggle navigation">
                 <i class="bi bi-list" style="font-size: 1.5rem;"></i>
             </button>
-
             <a class="navbar-brand mx-auto" href="{{ url_for('index') }}">Sistema OS</a>
-
             <div style="width: 40px;"> </div>
         </div>
     </nav>
@@ -57,17 +28,16 @@
     <div class="offcanvas offcanvas-start" tabindex="-1" id="sidebarMenu" aria-labelledby="sidebarMenuLabel">
         <div class="offcanvas-header border-bottom">
             <h5 class="offcanvas-title" id="sidebarMenuLabel"><i class="bi bi-gear-wide-connected me-2"></i>Menu Principal</h5>
-            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close"></button>
         </div>
-        <div class="offcanvas-body">
+        <div class="offcanvas-body d-flex flex-column">
             <ul class="nav nav-pills flex-column mb-auto">
                 <li class="nav-item">
                     <a class="nav-link" href="{{ url_for('index') }}">
                         <i class="bi bi-house-door-fill"></i>Página Inicial
                     </a>
                 </li>
-
-                {% if session.tipo == 'solicitante' %}
+                 {% if session.tipo == 'solicitante' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('abrir_os') }}">
                             <i class="bi bi-pencil-square"></i>Abrir OS
@@ -107,22 +77,29 @@
                     </li>
                 {% endif %}
             </ul>
+            
             <hr>
-            {% if session.usuario %}
-            <div class="dropdown">
-                <a href="#" class="d-flex align-items-center text-dark text-decoration-none dropdown-toggle px-1 py-2" id="dropdownUserSidebar" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
-                    <strong>{{ session.usuario }}</strong>
+            <ul class="nav nav-pills flex-column">
+                 <li class="nav-item">
+                    <button id="theme-toggle-button" class="nav-link w-100 text-start" type="button">
+                        <i id="theme-toggle-icon" class="bi bi-moon-stars-fill me-2"></i>Alternar Tema
+                    </button>
+                </li>
+            </ul>
+            <hr>
+                {% if session.usuario %}
+                <div class="dropdown mt-auto"> 
+                        <i class="bi bi-person-circle me-2" style="font-size: 1.5rem;"></i>
+                        <strong>{{ session.usuario }}</strong>
+                        <a class="nav-link" href="{{ url_for('logout') }}">
+                            <i class="bi bi-box-arrow-right"></i> Sair
+                        </a>
+                </div>
+                {% else %}
+                 <a class="nav-link" href="{{ url_for('login') }}">
+                    <i class="bi bi-box-arrow-in-right"></i>Login
                 </a>
-                <ul class="dropdown-menu dropdown-menu-dark text-small shadow" aria-labelledby="dropdownUserSidebar">
-                    <li><a class="dropdown-item" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right"></i> Sair</a></li>
-                </ul>
-            </div>
-            {% else %}
-             <a class="nav-link" href="{{ url_for('login') }}">
-                <i class="bi bi-box-arrow-in-right"></i>Login
-            </a>
-            {% endif %}
+                {% endif %}
         </div>
     </div>
 
@@ -142,6 +119,65 @@
     </main>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-ka7Sk0Gln4gmtz2MlQnikT1wXgYsOg+OMhuP+IlRH9sENBO0LRn5q+8nbTov4+1p" crossorigin="anonymous"></script>
+    
+    <script>
+        // JavaScript para alternância de tema
+        const THEME_KEY = 'theme-preference';
+        const THEME_DARK = 'dark';
+        const THEME_LIGHT = 'light';
+
+        const themeToggleButton = document.getElementById('theme-toggle-button');
+        const themeToggleIcon = document.getElementById('theme-toggle-icon');
+
+        const getPreferredTheme = () => {
+            const storedTheme = localStorage.getItem(THEME_KEY);
+            if (storedTheme) {
+                return storedTheme;
+            }
+            // Retorna 'light' como padrão se nenhuma preferência do sistema for detectada ou se preferir não usar
+            return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? THEME_DARK : THEME_LIGHT;
+        };
+
+        const setTheme = (theme) => {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem(THEME_KEY, theme);
+            updateToggleButtonIcon(theme);
+        };
+
+        const updateToggleButtonIcon = (theme) => {
+            if (themeToggleIcon) {
+                if (theme === THEME_DARK) {
+                    themeToggleIcon.classList.remove('bi-moon-stars-fill');
+                    themeToggleIcon.classList.add('bi-sun-fill');
+                } else {
+                    themeToggleIcon.classList.remove('bi-sun-fill');
+                    themeToggleIcon.classList.add('bi-moon-stars-fill');
+                }
+            }
+        };
+        
+        // Aplicar tema inicial no carregamento do DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialTheme = getPreferredTheme();
+            setTheme(initialTheme);
+
+            if (themeToggleButton) {
+                themeToggleButton.addEventListener('click', () => {
+                    const currentTheme = document.documentElement.getAttribute('data-bs-theme');
+                    const newTheme = currentTheme === THEME_DARK ? THEME_LIGHT : THEME_DARK;
+                    setTheme(newTheme);
+                });
+            }
+        });
+
+        // Opcional: Ouvir mudanças na preferência do sistema operacional
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', event => {
+            // Não sobrescreve se o usuário já fez uma escolha manual
+            if (!localStorage.getItem(THEME_KEY)) {
+                setTheme(event.matches ? THEME_DARK : THEME_LIGHT);
+            }
+        });
+    </script>
     {% block scripts %}{% endblock %}
 </body>
 </html>
