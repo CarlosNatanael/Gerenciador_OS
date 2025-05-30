@@ -30,6 +30,31 @@
                             <td>{{ tecnico.nome }} ({{ tecnico.email }})</td>
                         </tr>
                         {% endif %}
+                        {% if participantes %}
+                        <tr>
+                            <th>Equipe:</th>
+                            <td>
+                                <div class="d-flex flex-wrap gap-2">
+                                    {% for part in participantes %}
+                                    <div class="border rounded p-2">
+                                        <div class="d-flex align-items-center">
+                                            <i class="bi bi-person-fill me-2"></i>
+                                            <div>
+                                                <div class="fw-bold">{{ part.nome }}</div>
+                                                <small class="text-muted">{{ part.email }}</small>
+                                                {% if part.funcao %}
+                                                <div class="mt-1">
+                                                    <span class="badge bg-primary">{{ part.funcao }}</span>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endif %}
                         <tr>
                             <th>Data Abertura:</th>
                             <td>{{ os.data }}</td>
@@ -62,6 +87,12 @@
                             <td>{{ os.setor }}</td>
                         </tr>
                         {% endif %}
+                        {% if os.fim %}
+                        <tr>
+                            <th>Data Conclusão:</th>
+                            <td>{{ os.fim }}</td>
+                        </tr>
+                        {% endif %}
                     </table>
                 </div>
                 <div class="col-md-6">
@@ -69,16 +100,19 @@
                     <div class="border p-3 bg-light rounded mb-3">
                         {{ os.problema }}
                     </div>
-                    
-                    {% if os.solucao %}
+                    {% if os.solucao is not none %}
                     <h6>Solução Aplicada</h6>
                     <div class="border p-3 bg-light rounded">
                         {{ os.solucao }}
-                        {% if os.tempo_reparo %}
+                        {% if os.tempo_reparo is not none %}
                         <div class="mt-2 text-muted">
-                            <small>Tempo de reparo: {{ os.tempo_reparo }} minutos</small>
+                            <small>Tempo de reparo: {{ "%.2f"|format(os.tempo_reparo) }} minutos</small>
                         </div>
                         {% endif %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-warning mt-3">
+                        <strong>Solução não registrada</strong> (Status: {{ os.status }})
                     </div>
                     {% endif %}
                 </div>

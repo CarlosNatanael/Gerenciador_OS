@@ -9,22 +9,40 @@
     <div class="card">
         <div class="card-body">
             <form method="POST">
-                <div class="mb-3">
-                    <label for="data_agendamento" class="form-label">Data para Reparo</label>
-                    <input type="date" class="form-control" id="data_agendamento" name="data_agendamento" required>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="data_agendamento" class="form-label">Data para Reparo</label>
+                        <input type="date" class="form-control" id="data_agendamento" name="data_agendamento" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="horario_agendamento" class="form-label">Horário</label>
+                        <select class="form-select" id="horario_agendamento" name="horario_agendamento" required>
+                            <option value="08:00-12:00">Manhã (08:00 - 12:00)</option>
+                            <option value="13:00-17:00">Tarde (13:00 - 17:00)</option>
+                        </select>
+                    </div>
                 </div>
                 
                 <div class="mb-3">
-                    <label for="horario_agendamento" class="form-label">Horário</label>
-                    <select class="form-select" id="horario_agendamento" name="horario_agendamento" required>
-                        <option value="08:00-12:00">Manhã (08:00 - 12:00)</option>
-                        <option value="13:00-17:00">Tarde (13:00 - 17:00)</option>
-                    </select>
+                    <label class="form-label">Técnicos Participantes</label>
+                    <div class="form-control" style="height: auto; min-height: 100px; max-height: 200px; overflow-y: auto;">
+                        {% for tecnico in tecnicos %}
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" 
+                                   id="tecnico_{{ tecnico.id }}" 
+                                   name="tecnicos_participantes" 
+                                   value="{{ tecnico.id }}">
+                            <label class="form-check-label" for="tecnico_{{ tecnico.id }}">
+                                {{ tecnico.nome }}
+                            </label>
+                        </div>
+                        {% endfor %}
+                    </div>
                 </div>
                 
-                <div class="d-grid gap-2">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <a href="{{ url_for('manutencao_dashboard') }}" class="btn btn-outline-secondary me-md-2">Cancelar</a>
                     <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
-                    <a href="{{ url_for('manutencao_dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
                 </div>
             </form>
         </div>

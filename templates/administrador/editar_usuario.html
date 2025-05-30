@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+
+{% block title %}Editar Usuário{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Editar Usuário</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="nome" class="form-label">Nome Completo</label>
+                        <input type="text" class="form-control" id="nome" name="nome" value="{{ usuario.nome }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="usuario" class="form-label">Nome de Usuário</label>
+                        <input type="text" class="form-control" id="usuario" name="usuario" value="{{ usuario.usuario }}" required>
+                    </div>
+                </div>
+                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="email" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="email" name="email" value="{{ usuario.email }}" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label for="tipo" class="form-label">Tipo de Usuário</label>
+                        <select class="form-select" id="tipo" name="tipo" required>
+                            <option value="solicitante" {% if usuario.tipo == 'solicitante' %}selected{% endif %}>Solicitante</option>
+                            <option value="manutencao" {% if usuario.tipo == 'manutencao' %}selected{% endif %}>Técnico de Manutenção</option>
+                            <option value="admin" {% if usuario.tipo == 'admin' %}selected{% endif %}>Administrador</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="mb-3 form-check">
+                    <input type="checkbox" class="form-check-input" id="ativo" name="ativo" {% if usuario.ativo %}checked{% endif %}>
+                    <label class="form-check-label" for="ativo">Usuário Ativo</label>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+                    <a href="{{ url_for('listar_usuarios') }}" class="btn btn-outline-secondary me-md-2">Cancelar</a>
+                    <button type="submit" class="btn btn-primary">Salvar Alterações</button>
+                </div>
+            </form>
+            
+            <hr>
+            
+            <form method="POST" action="{{ url_for('alterar_senha_usuario', id=usuario.id) }}">
+                <h5>Alterar Senha</h5>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="nova_senha" class="form-label">Nova Senha</label>
+                        <input type="password" class="form-control" id="nova_senha" name="nova_senha" required>
+                    </div>
+                </div>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                    <button type="submit" class="btn btn-warning">Alterar Senha</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

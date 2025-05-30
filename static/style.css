@@ -195,3 +195,19 @@ body {
         padding: 0.5rem 1rem;
     }
 }
+.participante-list li {
+    padding: 3px 0;
+    border-bottom: 1px solid #eee;
+}
+.participante-list li:last-child {
+    border-bottom: none;
+}
+
+.badge {
+    font-size: 0.9rem;
+    padding: 0.35em 0.65em;
+}
+.btn-close {
+    font-size: 0.7rem;
+    padding: 0.25rem;
+}

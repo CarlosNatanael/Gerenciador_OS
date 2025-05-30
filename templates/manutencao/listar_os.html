@@ -30,6 +30,9 @@
                     {% endif %}
                 </td>
                 <td>
+                    {% if os.status == 'Agendada' %}
+                        <a href="{{ url_for('iniciar_os', id=os.id) }}" class="btn btn-sm btn-success">Iniciar</a>
+                    {% endif %}
                     <a href="{{ url_for('detalhe_os', id=os['id']) }}" class="btn btn-sm btn-info">Detalhes</a>
                 </td>
             </tr>
