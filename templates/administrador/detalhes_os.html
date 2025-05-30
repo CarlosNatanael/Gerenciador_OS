@@ -12,13 +12,9 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
-            <h5 class="mb-0">{{ os.equipamento }}</h5>
-        </div>
         <div class="card-body">
             <div class="row">
-                <div class="col-md-6">
-                    <h6>Informações Básicas</h6>
+                <div class="col-md-6"> <h6>Informações Básicas</h6>
                     <table class="table table-borderless">
                         <tr>
                             <th width="40%">Solicitante:</th>
@@ -94,8 +90,12 @@
                         </tr>
                         {% endif %}
                     </table>
-                </div>
-                <div class="col-md-6">
+                    </div>
+
+                <div class="col-md-6"> <div>
+                        <h5 class="mb-0">Equipamento: {{ os.equipamento }}</h5>
+                    </div>
+                    <br>
                     <h6>Descrição do Problema</h6>
                     <div class="border p-3 bg-light rounded mb-3">
                         {{ os.problema }}
@@ -120,7 +120,6 @@
         </div>
     </div>
 
-    <!-- Histórico de Alterações -->
     <div class="card">
         <div class="card-header bg-primary text-white">
             <h5 class="mb-0">Histórico de Alterações</h5>
