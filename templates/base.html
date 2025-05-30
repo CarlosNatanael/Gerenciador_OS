@@ -1,69 +1,83 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema OS - {% block title %}{% endblock %}</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">
-</head>
-<body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
-        <div class="container">
-            <a class="navbar-brand" href="#">Sistema OS</a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                <span class="navbar-toggler-icon"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
-                    {% if session.tipo == 'solicitante' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('abrir_os') }}">Abrir OS</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('minhas_os') }}">Minhas OSs</a>
-                        </li>
-                    {% elif session.tipo == 'manutencao' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('manutencao_dashboard') }}">Painel de OS</a>
-                        </li>
-                    {% elif session.tipo == 'admin' %}
-                        <li class="nav-item">
-                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
-                        </li>
-                        <li class="nav-item"> {# MODIFICADO: ADICIONADO ESTE ITEM #}
-                            <a class="nav-link" href="{{ url_for('abrir_os') }}">Abrir OS</a>
-                        </li>
-                    {% endif %}
-                </ul>
-                <div class="navbar-nav">
-                    {% if session.usuario %}
-                        <span class="navbar-text me-3">Olá, {{ session.usuario }}</span>
-                        <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </nav>
+{% extends "base.html" %}
 
-    <div class="container mt-4">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ category }} alert-dismissible fade show">
-                        {{ message }}
-                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+{% block title %}Abrir OS{% endblock %}
 
-        {% block content %}{% endblock %}
+{% block content %}
+<h2 class="mb-4">Abertura de Ordem de Serviço</h2>
+
+<form method="POST" action="{{ url_for('abrir_os') }}">
+    <div class="mb-3">
+        <label for="equipamento" class="form-label">Equipamento <span class="text-danger">*</span></label>
+        <input type="text" class="form-control" id="equipamento" name="equipamento" value="{{ request.form.equipamento if request.form else '' }}" required>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
-    {% block scripts %}{% endblock %}
-</body>
-</html>
+    <div class="mb-3">
+        <label for="local" class="form-label">Local <span class="text-danger">*</span></label>
+        <select class="form-select" id="local" name="local" required>
+            <option value="">Selecione um local...</option>
+            {% for local_obj in locais %}
+            <option value="{{ local_obj.nome }}" {% if request.form and request.form.local == local_obj.nome %}selected{% endif %}>
+                {{ local_obj.nome }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <div class="mb-3">
+        <label for="setor" class="form-label">Setor (Opcional)</label>
+        <input type="text" class="form-control" id="setor" name="setor" value="{{ request.form.setor if request.form else '' }}">
+    </div>
+
+    <div class="mb-3">
+        <label for="problema" class="form-label">Descrição do Problema <span class="text-danger">*</span></label>
+        <textarea class="form-control" id="problema" name="problema" rows="4" required>{{ request.form.problema if request.form else '' }}</textarea>
+    </div>
+    <div class="mb-3">
+        <label class="form-label">Prioridade</label>
+        <div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="prioridade" id="normal" value="normal" {% if not request.form or request.form.prioridade == 'normal' %}checked{% endif %}>
+                <label class="form-check-label" for="normal">Normal</label>
+            </div>
+            <div class="form-check form-check-inline">
+                <input class="form-check-input" type="radio" name="prioridade" id="urgente" value="urgente" {% if request.form and request.form.prioridade == 'urgente' %}checked{% endif %}>
+                <label class="form-check-label" for="urgente">Urgente</label>
+            </div>
+            </div>
+    </div>
+    <div class="mb-3" id="agendamento-field" style="{% if not request.form or request.form.prioridade == 'urgente' %}display: none;{% else %}display: block;{% endif %}">
+        <label for="data_agendamento" class="form-label">Data para Reparo</label>
+        <input type="date" class="form-control" id="data_agendamento" name="data_agendamento" value="{{ request.form.data_agendamento if request.form else '' }}">
+
+        <label for="horario_agendamento" class="form-label mt-2">Horário</label>
+        <select class="form-select" id="horario_agendamento" name="horario_agendamento">
+            <option value="08:00-12:00" {% if request.form and request.form.horario_agendamento == '08:00-12:00' %}selected{% endif %}>Manhã (08:00 - 12:00)</option>
+            <option value="13:00-17:00" {% if request.form and request.form.horario_agendamento == '13:00-17:00' %}selected{% endif %}>Tarde (13:00 - 17:00)</option>
+        </select>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const prioridadeRadios = document.querySelectorAll('input[name="prioridade"]'); // Alterado para querySelectorAll
+    const agendamentoField = document.getElementById('agendamento-field');
+    
+    function toggleAgendamentoField() {
+        const selectedPrioridade = document.querySelector('input[name="prioridade"]:checked');
+        if (selectedPrioridade && selectedPrioridade.value === 'normal') {
+            agendamentoField.style.display = 'block';
+        } else {
+            agendamentoField.style.display = 'none';
+        }
+    }
+
+    prioridadeRadios.forEach(function(radio) {
+        radio.addEventListener('change', toggleAgendamentoField);
+    });
+
+    // Garante o estado correto no carregamento da página
+    toggleAgendamentoField();
+});
+</script>
+    <button type="submit" class="btn btn-primary">Enviar OS</button>
+</form>
+{% endblock %}

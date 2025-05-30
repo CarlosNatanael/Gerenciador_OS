@@ -91,8 +91,17 @@ def criar_banco_dados():
             FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
         )
         ''')
-
-        # Demais tabelas (histórico, participantes, anexos) permanecem iguais...
+        # Tabela de locais
+        cursor.execute('''
+        CREATE TABLE IF NOT EXISTS locais (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL UNIQUE,
+            descricao TEXT,
+            ativo BOOLEAN DEFAULT 1,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        print("Tabela 'locais' verificada/criada.")
 
         # Apenas cria o usuário admin inicial
         cursor.execute("SELECT COUNT(*) FROM usuarios")

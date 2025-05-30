@@ -77,59 +77,80 @@ def logout():
 
 
 # --- SOLICITANTE ---
-@app.route('/solicitante/abrir', methods=['GET', 'POST']) # Considere renomear a rota para algo mais genérico como /os/abrir se preferir
+@app.route('/solicitante/abrir', methods=['GET', 'POST']) # Ou a URL que você estiver usando
 def abrir_os():
-    if session.get('tipo') not in ['solicitante', 'admin']: # MODIFICADO AQUI
+    if session.get('tipo') not in ['solicitante', 'admin']:
         flash('Acesso não autorizado para esta funcionalidade.', 'danger')
-        return redirect(url_for('login')) # Ou redirecionar para o dashboard apropriado
+        return redirect(url_for('login'))
+
+    conn_locais = get_db() # Conexão para buscar locais
+    cursor_locais = conn_locais.cursor()
+    cursor_locais.execute("SELECT id, nome FROM locais WHERE ativo = 1 ORDER BY nome")
+    locais_ativos = cursor_locais.fetchall()
+    # Não feche a conexão conn_locais ainda se for usá-la no POST ou se houver erro
 
     if request.method == 'POST':
         equipamento = request.form.get('equipamento', '').strip()
         problema = request.form.get('problema', '').strip()
         prioridade = request.form.get('prioridade', 'normal')
+        # MODIFICADO: Capturar o local_id do formulário
+        local_selecionado = request.form.get('local') # Este será o nome do local
+        setor = request.form.get('setor', '').strip() # Campo setor continua texto livre por enquanto
+
         data_agendamento = request.form.get('data_agendamento') if prioridade == 'normal' else None
         horario_agendamento = request.form.get('horario_agendamento') if prioridade == 'normal' else None
         
-        if not equipamento or not problema:
-            flash('Preencha todos os campos obrigatórios.', 'danger')
-            # Se o admin estiver abrindo, talvez ele deva ser redirecionado para a mesma página de abrir_os
-            # e não para a do solicitante especificamente, caso os templates sejam diferentes.
-            # Como o template é o mesmo (solicitante/abrir_os.html), isso deve funcionar.
-            return render_template('solicitante/abrir_os.html') 
+        if not equipamento or not problema or not local_selecionado: # Adicionado local_selecionado à validação
+            flash('Preencha todos os campos obrigatórios (Equipamento, Problema e Local).', 'danger')
+            # Se houver erro no POST, conn_locais já está aberta e locais_ativos populado
+            conn_locais.close() # Fechar aqui se retornar
+            return render_template('solicitante/abrir_os.html', locais=locais_ativos) # Passar locais_ativos de volta
         
         data_abertura = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         
+        conn_insert = None # Nova variável para a conexão de inserção
         try:
-            conn = get_db()
-            cursor = conn.cursor()
+            conn_insert = get_db() # Obter uma nova instância de conexão para a operação de escrita
+            cursor_insert = conn_insert.cursor()
             
-            # O user_id da sessão será usado como solicitante_id,
-            # o que é correto, pois o admin é o solicitante neste caso.
-            cursor.execute("SELECT id FROM usuarios WHERE usuario = ?", (session['usuario'],))
-            user = cursor.fetchone()
+            cursor_insert.execute("SELECT id FROM usuarios WHERE usuario = ?", (session['usuario'],))
+            user = cursor_insert.fetchone()
             
-            cursor.execute("""
+            # Salvar o nome do local diretamente, como antes.
+            # Se quisesse salvar o ID, a coluna 'local' em 'ordens_servico' deveria ser INTEGER
+            # e referenciar 'locais.id' (FOREIGN KEY). Por simplicidade, mantemos TEXT.
+            cursor_insert.execute("""
                 INSERT INTO ordens_servico 
-                (data, equipamento, problema, prioridade, status, solicitante_id, data_agendamento, horario_agendamento) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-            """, (data_abertura, equipamento, problema, prioridade, 'Aberta', user['id'], data_agendamento, horario_agendamento))
+                (data, equipamento, problema, prioridade, status, solicitante_id, 
+                 local, setor, data_agendamento, horario_agendamento) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (data_abertura, equipamento, problema, prioridade, 'Aberta', user['id'], 
+                  local_selecionado, setor, data_agendamento, horario_agendamento))
             
-            conn.commit()
+            conn_insert.commit()
             flash('Ordem de serviço enviada com sucesso.', 'success')
-            # Após o admin abrir uma OS, ele pode ser redirecionado para o dashboard dele ou para a página de abrir_os novamente
+            
+            # Redirecionamento
             if session.get('tipo') == 'admin':
-                return redirect(url_for('admin_dashboard')) # Ou para 'abrir_os' se quiser abrir outra
+                return redirect(url_for('admin_dashboard'))
             else:
-                return redirect(url_for('abrir_os'))
+                return redirect(url_for('abrir_os')) # Ou 'minhas_os'
             
         except sqlite3.Error as e:
-            conn.rollback()
+            if conn_insert: # Apenas fazer rollback se conn_insert foi inicializada
+                conn_insert.rollback()
             flash(f'Erro ao salvar OS: {str(e)}', 'danger')
         finally:
-            conn.close()
-    
-    # O mesmo template 'solicitante/abrir_os.html' pode ser usado por ambos
-    return render_template('solicitante/abrir_os.html')
+            if conn_insert: # Apenas fechar se conn_insert foi inicializada
+                conn_insert.close()
+            # conn_locais deve ser fechada aqui se o POST foi bem-sucedido e não houve return antes
+            if conn_locais.is_connected: # Verifique se ainda está conectada
+                 conn_locais.close()
+
+
+    # Para GET request, conn_locais está aberta e locais_ativos populado
+    conn_locais.close() # Fechar conn_locais após o uso no GET
+    return render_template('solicitante/abrir_os.html', locais=locais_ativos)
 
 @app.route('/solicitante/minhas_os')
 def minhas_os():
@@ -562,6 +583,154 @@ def detalhe_os_admin(id):
     finally:
         conn.close()
 
+# --- ADMIN - Configurações --- (Definição correta)
+@app.route('/admin/configuracoes')
+def admin_configuracoes():
+    if session.get('tipo') != 'admin':
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+    return render_template('administrador/configuracoes.html')
+
+# --- ADMIN - Gerenciamento de Locais ---
+@app.route('/admin/locais')
+def listar_locais():
+    if session.get('tipo') != 'admin':
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM locais ORDER BY nome")
+    locais = cursor.fetchall()
+    conn.close()
+    return render_template('administrador/listar_locais.html', locais=locais)
+
+@app.route('/admin/locais/adicionar', methods=['GET', 'POST'])
+def adicionar_local():
+    if session.get('tipo') != 'admin':
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        ativo = 1 if request.form.get('ativo') == '1' else 0
+
+        if not nome:
+            flash('O nome do local é obrigatório.', 'danger')
+            return render_template('administrador/form_local.html', local=None) # Retorna para o form com dados preenchidos
+
+        try:
+            conn = get_db()
+            cursor = conn.cursor()
+            cursor.execute(
+                "INSERT INTO locais (nome, descricao, ativo) VALUES (?, ?, ?)",
+                (nome, descricao, ativo)
+            )
+            conn.commit()
+            flash('Local adicionado com sucesso!', 'success')
+            return redirect(url_for('listar_locais'))
+        except sqlite3.IntegrityError:
+            conn.rollback()
+            flash('Já existe um local com este nome.', 'danger')
+        except Exception as e:
+            conn.rollback()
+            flash(f'Erro ao adicionar local: {str(e)}', 'danger')
+        finally:
+            if conn:
+                conn.close()
+        # Em caso de erro, recarrega o formulário com os dados inseridos
+        return render_template('administrador/form_local.html', local={'nome': nome, 'descricao': descricao, 'ativo': ativo})
+
+
+    return render_template('administrador/form_local.html', local=None) # Para GET request
+
+@app.route('/admin/locais/editar/<int:id>', methods=['GET', 'POST'])
+def editar_local(id):
+    if session.get('tipo') != 'admin':
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    conn = get_db() # Mova a obtenção da conexão para o início
+    cursor = conn.cursor()
+
+    if request.method == 'POST':
+        nome = request.form.get('nome', '').strip()
+        descricao = request.form.get('descricao', '').strip()
+        ativo = 1 if request.form.get('ativo') == '1' else 0
+
+        if not nome:
+            flash('O nome do local é obrigatório.', 'danger')
+            # Para manter os dados no formulário em caso de erro no POST
+            cursor.execute("SELECT * FROM locais WHERE id = ?", (id,))
+            local_data = cursor.fetchone()
+            conn.close()
+            if not local_data:
+                flash('Local não encontrado.', 'danger')
+                return redirect(url_for('listar_locais'))
+            # Atualiza o dicionário com os dados do formulário para repopular
+            local_dict_for_template = dict(local_data)
+            local_dict_for_template['nome'] = nome
+            local_dict_for_template['descricao'] = descricao
+            local_dict_for_template['ativo'] = ativo
+            return render_template('administrador/form_local.html', local=local_dict_for_template)
+
+
+        try:
+            # Verifica se o novo nome já existe para outro ID
+            cursor.execute("SELECT id FROM locais WHERE nome = ? AND id != ?", (nome, id))
+            outro_local_com_mesmo_nome = cursor.fetchone()
+            if outro_local_com_mesmo_nome:
+                flash('Já existe outro local com este nome.', 'danger')
+            else:
+                cursor.execute(
+                    "UPDATE locais SET nome = ?, descricao = ?, ativo = ? WHERE id = ?",
+                    (nome, descricao, ativo, id)
+                )
+                conn.commit()
+                flash('Local atualizado com sucesso!', 'success')
+                conn.close() # Fechar conexão aqui após o commit bem-sucedido
+                return redirect(url_for('listar_locais'))
+        except sqlite3.Error as e: # Usar sqlite3.Error para ser mais específico
+            conn.rollback()
+            flash(f'Erro ao atualizar local: {str(e)}', 'danger')
+        # Não feche a conexão aqui se houve erro e você vai renderizar o template novamente
+
+    # Para GET request ou se houve erro no POST e precisa recarregar com os dados do BD
+    cursor.execute("SELECT * FROM locais WHERE id = ?", (id,))
+    local_data = cursor.fetchone()
+    conn.close() # Fechar a conexão após buscar os dados para o GET
+
+    if not local_data:
+        flash('Local não encontrado.', 'danger')
+        return redirect(url_for('listar_locais'))
+    
+    return render_template('administrador/form_local.html', local=local_data)
+
+
+@app.route('/admin/locais/remover/<int:id>')
+def remover_local(id):
+    if session.get('tipo') != 'admin':
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+        # Opcional: Verificar se o local está em uso antes de remover ou apenas desativar.
+        # Por simplicidade, vamos remover.
+        cursor.execute("DELETE FROM locais WHERE id = ?", (id,))
+        conn.commit()
+        flash('Local removido com sucesso!', 'success')
+    except Exception as e:
+        conn.rollback()
+        flash(f'Erro ao remover local: {str(e)}', 'danger')
+    finally:
+        if conn:
+            conn.close()
+    
+    return redirect(url_for('listar_locais'))
+
 # --- ADMIN - Gerenciamento de Usuários ---
 @app.route('/admin/usuarios')
 def listar_usuarios():
@@ -697,8 +866,8 @@ def remover_usuario(id):
     
     return redirect(url_for('listar_usuarios'))
 
-if __name__ == '__main__':
-    app.run(host="0.0.0.0", port=5000, debug=True)
-
 # No final do arquivo, antes do app.run()
 app.teardown_appcontext(close_db)
+
+if __name__ == '__main__':
+    app.run(host="0.0.0.0", port=5000, debug=True)
