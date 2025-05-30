@@ -37,6 +37,13 @@ app.secret_key = 'pokemar16'
 # Rota inicial
 @app.route('/')
 def index():
+    if 'usuario' in session:
+        if session['tipo'] == 'admin':
+            return redirect(url_for('admin_dashboard'))
+        elif session['tipo'] == 'manutencao':
+            return redirect(url_for('manutencao_dashboard'))
+        else: # solicitante
+            return redirect(url_for('abrir_os')) # ou minhas_os
     return redirect(url_for('login'))
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -59,7 +66,7 @@ def login():
             session['user_id'] = user['id']  # Armazena o ID do usuário na sessão
 
             if user['tipo'] == 'solicitante':
-                return redirect(url_for('abrir_os'))
+                return redirect(url_for('minhas_os')) # MODIFICADO AQUI
             elif user['tipo'] == 'manutencao':
                 return redirect(url_for('manutencao_dashboard'))
             elif user['tipo'] == 'admin':
