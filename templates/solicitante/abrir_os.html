@@ -27,6 +27,31 @@
             </div>
         </div>
     </div>
+    <div class="mb-3" id="agendamento-field" style="display: none;">
+        <label for="data_agendamento" class="form-label">Data para Reparo</label>
+        <input type="date" class="form-control" id="data_agendamento" name="data_agendamento">
+
+        <label for="horario_agendamento" class="form-label mt-2">Horário</label>
+        <select class="form-select" id="horario_agendamento" name="horario_agendamento">
+            <option value="08:00-12:00">Manhã (08:00 - 12:00)</option>
+            <option value="13:00-17:00">Tarde (13:00 - 17:00)</option>
+        </select>
+    </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const prioridadeSelect = document.querySelector('input[name="prioridade"]');
+    const agendamentoField = document.getElementById('agendamento-field');
+    
+    prioridadeSelect.addEventListener('change', function() {
+        if (this.value === 'normal') {
+            agendamentoField.style.display = 'block';
+        } else {
+            agendamentoField.style.display = 'none';
+        }
+    });
+});
+</script>
     <button type="submit" class="btn btn-primary">Enviar OS</button>
 </form>
 {% endblock %}

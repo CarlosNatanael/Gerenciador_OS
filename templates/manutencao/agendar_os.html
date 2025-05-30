@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+
+{% block title %}Agendar OS #{{ os.id }}{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Agendar Reparo - OS #{{ os.id }}</h2>
+    
+    <div class="card">
+        <div class="card-body">
+            <form method="POST">
+                <div class="mb-3">
+                    <label for="data_agendamento" class="form-label">Data para Reparo</label>
+                    <input type="date" class="form-control" id="data_agendamento" name="data_agendamento" required>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="horario_agendamento" class="form-label">Horário</label>
+                    <select class="form-select" id="horario_agendamento" name="horario_agendamento" required>
+                        <option value="08:00-12:00">Manhã (08:00 - 12:00)</option>
+                        <option value="13:00-17:00">Tarde (13:00 - 17:00)</option>
+                    </select>
+                </div>
+                
+                <div class="d-grid gap-2">
+                    <button type="submit" class="btn btn-primary">Confirmar Agendamento</button>
+                    <a href="{{ url_for('manutencao_dashboard') }}" class="btn btn-outline-secondary">Cancelar</a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

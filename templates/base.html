@@ -13,11 +13,34 @@
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary">
         <div class="container">
             <a class="navbar-brand" href="#">Sistema OS</a>
-            <div class="navbar-nav ms-auto">
-                {% if session.usuario %}
-                    <span class="navbar-text me-3">Olá, {{ session.usuario }}</span>
-                    <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
-                {% endif %}
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if session.tipo == 'solicitante' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('abrir_os') }}">Abrir OS</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('minhas_os') }}">Minhas OSs</a>
+                        </li>
+                    {% elif session.tipo == 'manutencao' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('manutencao_dashboard') }}">Painel de OS</a>
+                        </li>
+                    {% elif session.tipo == 'admin' %}
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('admin_dashboard') }}">Dashboard</a>
+                        </li>
+                    {% endif %}
+                </ul>
+                <div class="navbar-nav">
+                    {% if session.usuario %}
+                        <span class="navbar-text me-3">Olá, {{ session.usuario }}</span>
+                        <a class="nav-link" href="{{ url_for('logout') }}">Sair</a>
+                    {% endif %}
+                </div>
             </div>
         </div>
     </nav>

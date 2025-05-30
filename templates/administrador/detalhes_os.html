@@ -97,12 +97,12 @@
                 {% for item in historico %}
                 <div class="list-group-item">
                     <div class="d-flex justify-content-between">
-                        <h6 class="mb-1">{{ item.acao }}</h6>
-                        <small>{{ item.data_alteracao }}</small>
+                        <h6 class="mb-1">{{ item['acao'] }}</h6>
+                        <small>{{ item['data_alteracao'] }}</small>
                     </div>
-                    <p class="mb-1">Por: {{ item.usuario_nome }}</p>
-                    {% if item.observacao %}
-                    <p class="mb-1 text-muted"><small>{{ item.observacao }}</small></p>
+                    <p class="mb-1">Por: {{ item['usuario_nome'] }}</p>
+                    {% if item['observacao'] %}
+                    <p class="mb-1 text-muted"><small>{{ item['observacao'] }}</small></p>
                     {% endif %}
                 </div>
                 {% endfor %}

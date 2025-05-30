@@ -44,6 +44,8 @@ def criar_banco_dados():
             tecnico_id INTEGER,
             local TEXT,
             setor TEXT,
+            data_agendamento TEXT,
+            horario_agendamento TEXT,
             FOREIGN KEY (solicitante_id) REFERENCES usuarios (id),
             FOREIGN KEY (tecnico_id) REFERENCES usuarios (id)
         )
