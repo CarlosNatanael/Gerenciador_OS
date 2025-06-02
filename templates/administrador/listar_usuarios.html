@@ -46,11 +46,31 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <a href="{{ url_for('editar_usuario', id=usuario.id) }}" class="btn btn-sm btn-outline-primary">
+                                <a href="{{ url_for('editar_usuario', id_usuario_alvo=usuario.id) }}" class="btn btn-sm btn-outline-primary" title="Editar">
                                     <i class="bi bi-pencil"></i>
                                 </a>
-                                {% if usuario.id != session.user_id %}
-                                <a href="{{ url_for('remover_usuario', id=usuario.id) }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Tem certeza que deseja remover este usuário?')">
+                                {# Lógica para o botão Remover #}
+                                {% set pode_remover_este_usuario = false %}
+                                {% if session.tipo == 'master-admin' %}
+                                    {% if usuario.id != session.user_id %} {# Master admin não remove a si mesmo aqui #}
+                                        {% if usuario.tipo != 'master-admin' %} {# Pode remover admin, manutencao, solicitante #}
+                                            {% set pode_remover_este_usuario = true %}
+                                        {% else %}
+                                            {% set total_master_admins_ativos = 0 %}
+                                            {% set pode_remover_este_usuario = true %} 
+                                        {% endif %}
+                                    {% endif %}
+                                {% elif session.tipo == 'admin' %}
+                                    {% if usuario.tipo in ['solicitante', 'manutencao'] and usuario.id != session.user_id %}
+                                        {% set pode_remover_este_usuario = true %}
+                                    {% endif %}
+                                {% endif %}
+                            
+                                {% if pode_remover_este_usuario %}
+                                <a href="{{ url_for('remover_usuario', id_usuario_alvo=usuario.id) }}" 
+                                   class="btn btn-sm btn-outline-danger" 
+                                   title="Remover"
+                                   onclick="return confirm('Tem certeza que deseja remover este usuário? Esta ação não pode ser desfeita e pode afetar registros históricos se não for desativação.')">
                                     <i class="bi bi-trash"></i>
                                 </a>
                                 {% endif %}

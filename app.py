@@ -750,85 +750,249 @@ def listar_usuarios():
 
 @app.route('/admin/usuarios/novo', methods=['GET', 'POST'])
 def novo_usuario():
-    if session.get('tipo') != 'admin':
-        return redirect(url_for('login'))
+    # Apenas master-admin e admin podem acessar esta página
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login')) # Ou para o dashboard apropriado
+
+    tipos_disponiveis_para_criacao = []
+    if session.get('tipo') == 'master-admin':
+        tipos_disponiveis_para_criacao = [
+            {'value': 'solicitante', 'label': 'Solicitante'},
+            {'value': 'manutencao', 'label': 'Técnico de Manutenção'},
+            {'value': 'admin', 'label': 'Administrador'}
+            # Master-admin não cria outro master-admin por este formulário padrão
+        ]
+    elif session.get('tipo') == 'admin':
+        tipos_disponiveis_para_criacao = [
+            {'value': 'solicitante', 'label': 'Solicitante'},
+            {'value': 'manutencao', 'label': 'Técnico de Manutenção'}
+            # Admin não pode criar outros admins ou master-admins
+        ]
 
     if request.method == 'POST':
-        usuario = request.form['usuario']
-        senha = request.form['senha']
-        tipo = request.form['tipo']
-        nome = request.form['nome']
-        email = request.form['email']
+        usuario = request.form.get('usuario', '').strip()
+        senha = request.form.get('senha')
+        tipo_novo_usuario = request.form.get('tipo')
+        nome = request.form.get('nome', '').strip()
+        email = request.form.get('email', '').strip()
+        # Captura a especialidade apenas se o tipo for 'manutencao'
+        especialidade = request.form.get('especialidade') if tipo_novo_usuario == 'manutencao' else None
+
+        # Validação básica de campos obrigatórios
+        if not all([usuario, senha, tipo_novo_usuario, nome, email]):
+            flash('Todos os campos marcados com * são obrigatórios.', 'warning')
+            return render_template('administrador/novo_usuario.html', 
+                                   tipos_disponiveis=tipos_disponiveis_para_criacao,
+                                   submitted_data=request.form) # Para repopular o formulário
         
+        # Validação de permissão para o tipo de usuário selecionado
+        tipos_valores_permitidos = [t['value'] for t in tipos_disponiveis_para_criacao]
+        if tipo_novo_usuario not in tipos_valores_permitidos:
+            flash('Você não tem permissão para criar este tipo de usuário.', 'danger')
+            return render_template('administrador/novo_usuario.html', 
+                                   tipos_disponiveis=tipos_disponiveis_para_criacao,
+                                   submitted_data=request.form)
+
+        if tipo_novo_usuario == 'manutencao' and not especialidade:
+            flash('A especialidade é obrigatória para usuários do tipo Técnico de Manutenção.', 'warning')
+            return render_template('administrador/novo_usuario.html', 
+                                   tipos_disponiveis=tipos_disponiveis_para_criacao,
+                                   submitted_data=request.form)
+
         try:
             conn = get_db()
             cursor = conn.cursor()
             cursor.execute('''
-                INSERT INTO usuarios (usuario, senha, tipo, nome, email)
-                VALUES (?, ?, ?, ?, ?)
-            ''', (usuario, generate_password_hash(senha), tipo, nome, email))
+                INSERT INTO usuarios (usuario, senha, tipo, nome, email, especialidade, ativo)
+                VALUES (?, ?, ?, ?, ?, ?, 1)
+            ''', (usuario, generate_password_hash(senha), tipo_novo_usuario, nome, email, especialidade))
             conn.commit()
             flash('Usuário criado com sucesso!', 'success')
             return redirect(url_for('listar_usuarios'))
         except sqlite3.IntegrityError:
-            flash('Usuário ou email já existente!', 'danger')
+            # conn.rollback() # get_db() e teardown_appcontext devem lidar com isso, mas não custa.
+            flash('Nome de usuário ou email já cadastrado.', 'danger')
         except Exception as e:
+            # conn.rollback()
             flash(f'Erro ao criar usuário: {str(e)}', 'danger')
-        finally:
-            conn.close()
+        
+        # Se chegou aqui, houve um erro na tentativa de inserção, então repopula o form
+        return render_template('administrador/novo_usuario.html', 
+                               tipos_disponiveis=tipos_disponiveis_para_criacao,
+                               submitted_data=request.form)
 
-    return render_template('administrador/novo_usuario.html')
+    # Método GET
+    return render_template('administrador/novo_usuario.html', 
+                           tipos_disponiveis=tipos_disponiveis_para_criacao)
 
-@app.route('/admin/usuarios/editar/<int:id>', methods=['GET', 'POST'])
-def editar_usuario(id):
-    if session.get('tipo') != 'admin':
+@app.route('/admin/usuarios/editar/<int:id_usuario_alvo>', methods=['GET', 'POST'])
+def editar_usuario(id_usuario_alvo):
+    # Quem está logado
+    editor_tipo = session.get('tipo')
+    editor_id = session.get('user_id')
+
+    if editor_tipo not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
     conn = get_db()
     cursor = conn.cursor()
+    cursor.execute("SELECT * FROM usuarios WHERE id = ?", (id_usuario_alvo,))
+    usuario_alvo = cursor.fetchone()
 
-    if request.method == 'POST':
-        usuario = request.form['usuario']
-        tipo = request.form['tipo']
-        nome = request.form['nome']
-        email = request.form['email']
-        ativo = request.form.get('ativo', 0)
-        
-        try:
-            # Atualiza sem senha (senha é alterada separadamente)
-            cursor.execute('''
-                UPDATE usuarios 
-                SET usuario = ?, tipo = ?, nome = ?, email = ?, ativo = ?
-                WHERE id = ?
-            ''', (usuario, tipo, nome, email, 1 if ativo == 'on' else 0, id))
-            conn.commit()
-            flash('Usuário atualizado com sucesso!', 'success')
-        except sqlite3.IntegrityError:
-            flash('Usuário ou email já existente!', 'danger')
-        except Exception as e:
-            flash(f'Erro ao atualizar usuário: {str(e)}', 'danger')
-        finally:
-            conn.close()
-            return redirect(url_for('listar_usuarios'))
-
-    # GET - Carrega dados do usuário
-    cursor.execute("SELECT * FROM usuarios WHERE id = ?", (id,))
-    usuario = cursor.fetchone()
-    conn.close()
-
-    if not usuario:
+    if not usuario_alvo:
         flash('Usuário não encontrado!', 'danger')
         return redirect(url_for('listar_usuarios'))
 
-    return render_template('administrador/editar_usuario.html', usuario=usuario)
+    # --- Lógica de Permissão para Acessar a Página de Edição (GET) e para Salvar (POST) ---
+    pode_editar = False
+    tipos_disponiveis_para_atribuicao = []
 
-@app.route('/admin/usuarios/alterar_senha/<int:id>', methods=['POST'])
-def alterar_senha_usuario(id):
-    if session.get('tipo') != 'admin':
+    if editor_tipo == 'master-admin':
+        pode_editar = True
+        # Master-admin pode atribuir estes tipos:
+        tipos_disponiveis_para_atribuicao = [
+            {'value': 'solicitante', 'label': 'Solicitante'},
+            {'value': 'manutencao', 'label': 'Técnico de Manutenção'},
+            {'value': 'admin', 'label': 'Administrador'}
+        ]
+        # Master-admin não pode rebaixar outro master-admin ou a si mesmo via este form simples
+        if usuario_alvo['tipo'] == 'master-admin':
+            tipos_disponiveis_para_atribuicao = [{'value': 'master-admin', 'label': 'Master Administrador'}] # Só pode ser master-admin
+            if usuario_alvo['id'] == editor_id and sum(1 for row in cursor.execute("SELECT 1 FROM usuarios WHERE tipo = 'master-admin' AND ativo = 1")) <= 1:
+                 # Impede o único master-admin ativo de mudar seu próprio tipo se for o único
+                 tipos_disponiveis_para_atribuicao = [{'value': 'master-admin', 'label': 'Master Administrador'}]
+
+
+    elif editor_tipo == 'admin':
+        if usuario_alvo['tipo'] == 'master-admin':
+            pode_editar = False # Admin não pode editar master-admin
+            flash('Administradores não podem editar usuários Master Administrador.', 'warning')
+        elif usuario_alvo['tipo'] == 'admin' and usuario_alvo['id'] != editor_id:
+            pode_editar = False # Admin não pode editar outros admins
+            flash('Administradores não podem editar outros Administradores.', 'warning')
+        elif usuario_alvo['id'] == editor_id: # Admin editando a si mesmo
+            pode_editar = True # Pode editar seus próprios dados, exceto o tipo
+            tipos_disponiveis_para_atribuicao = [{'value': 'admin', 'label': 'Administrador'}] # Tipo fixo
+        else: # Admin editando solicitante ou manutencao
+            pode_editar = True
+            tipos_disponiveis_para_atribuicao = [
+                {'value': 'solicitante', 'label': 'Solicitante'},
+                {'value': 'manutencao', 'label': 'Técnico de Manutenção'}
+            ]
+            # Se o usuário alvo já é admin (e o editor não é o mesmo admin), essa condição não deveria ser alcançada
+            # por causa do 'elif' anterior. Mas para garantir:
+            if usuario_alvo['tipo'] == 'admin':
+                 tipos_disponiveis_para_atribuicao = [{'value': 'admin', 'label': 'Administrador'}]
+
+
+    if not pode_editar and request.method == 'GET': # Redireciona no GET se não puder editar
+         return redirect(url_for('listar_usuarios'))
+
+
+    if request.method == 'POST':
+        if not pode_editar: # Dupla verificação para o POST
+            flash('Você não tem permissão para modificar este usuário.', 'danger')
+            return redirect(url_for('listar_usuarios'))
+
+        nome_form = request.form.get('nome','').strip()
+        usuario_form = request.form.get('usuario','').strip() # Usuário (login)
+        email_form = request.form.get('email','').strip()
+        tipo_form = request.form.get('tipo')
+        ativo_form = 1 if request.form.get('ativo') == 'on' else 0 # Checkbox 'on' ou ausente
+        especialidade_form = request.form.get('especialidade') if tipo_form == 'manutencao' else None
+
+        # Validação básica
+        if not all([nome_form, usuario_form, email_form, tipo_form]):
+            flash('Campos Nome, Usuário, Email e Tipo são obrigatórios.', 'warning')
+            # Recarrega com os dados do formulário, não do banco, para o usuário corrigir
+            usuario_alvo_temp_form = dict(usuario_alvo)
+            usuario_alvo_temp_form.update(request.form.to_dict())
+            return render_template('administrador/editar_usuario.html', 
+                                   usuario=usuario_alvo_temp_form, 
+                                   tipos_disponiveis=tipos_disponiveis_para_atribuicao,
+                                   pode_alterar_tipo=(usuario_alvo['tipo'] != 'master-admin' and (editor_tipo == 'master-admin' or usuario_alvo['id'] != editor_id)))
+
+
+        # Validação do tipo selecionado
+        tipos_valores_permitidos = [t['value'] for t in tipos_disponiveis_para_atribuicao]
+        if tipo_form not in tipos_valores_permitidos:
+            flash('Você não tem permissão para atribuir este tipo de usuário.', 'danger')
+            # Recarrega como acima
+            usuario_alvo_temp_form = dict(usuario_alvo)
+            usuario_alvo_temp_form.update(request.form.to_dict())
+            return render_template('administrador/editar_usuario.html', 
+                                   usuario=usuario_alvo_temp_form, 
+                                   tipos_disponiveis=tipos_disponiveis_para_atribuicao,
+                                   pode_alterar_tipo=(usuario_alvo['tipo'] != 'master-admin' and (editor_tipo == 'master-admin' or usuario_alvo['id'] != editor_id)))
+
+        if tipo_form == 'manutencao' and not especialidade_form:
+            flash('Especialidade é obrigatória para Técnico de Manutenção.', 'warning')
+            # Recarrega como acima
+            usuario_alvo_temp_form = dict(usuario_alvo)
+            usuario_alvo_temp_form.update(request.form.to_dict())
+            return render_template('administrador/editar_usuario.html', 
+                                   usuario=usuario_alvo_temp_form, 
+                                   tipos_disponiveis=tipos_disponiveis_para_atribuicao,
+                                   pode_alterar_tipo=(usuario_alvo['tipo'] != 'master-admin' and (editor_tipo == 'master-admin' or usuario_alvo['id'] != editor_id)))
+        
+        # Lógica para impedir que o único master-admin ativo se desative ou mude de tipo crítico
+        if usuario_alvo['tipo'] == 'master-admin' and usuario_alvo['id'] == editor_id:
+            if not ativo_form:
+                cursor.execute("SELECT COUNT(*) FROM usuarios WHERE tipo = 'master-admin' AND ativo = 1 AND id != ?", (editor_id,))
+                outros_master_admins_ativos = cursor.fetchone()[0]
+                if outros_master_admins_ativos == 0:
+                    flash('Não é possível desativar o único Master Administrador ativo.', 'danger')
+                    ativo_form = 1 # Força de volta para ativo
+            if tipo_form != 'master-admin':
+                 flash('Master Administradores não podem mudar seu próprio tipo desta forma.', 'danger')
+                 tipo_form = 'master-admin' # Força de volta para master-admin
+
+
+        try:
+            cursor.execute('''
+                UPDATE usuarios 
+                SET nome = ?, usuario = ?, email = ?, tipo = ?, especialidade = ?, ativo = ?
+                WHERE id = ?
+            ''', (nome_form, usuario_form, email_form, tipo_form, especialidade_form, ativo_form, id_usuario_alvo))
+            conn.commit()
+            flash('Usuário atualizado com sucesso!', 'success')
+            return redirect(url_for('listar_usuarios'))
+        except sqlite3.IntegrityError:
+            # conn.rollback()
+            flash('Nome de usuário ou email já existe para outro usuário.', 'danger')
+        except Exception as e:
+            # conn.rollback()
+            flash(f'Erro ao atualizar usuário: {str(e)}', 'danger')
+        
+        # Se chegou aqui, houve erro no update, repopula o form
+        usuario_alvo_temp_form = dict(usuario_alvo)
+        usuario_alvo_temp_form.update(request.form.to_dict()) # Pega os valores atuais do form
+        return render_template('administrador/editar_usuario.html', 
+                               usuario=usuario_alvo_temp_form, 
+                               tipos_disponiveis=tipos_disponiveis_para_atribuicao,
+                               pode_alterar_tipo=(usuario_alvo['tipo'] != 'master-admin' and (editor_tipo == 'master-admin' or usuario_alvo['id'] != editor_id)))
+
+
+    # Método GET (se pode_editar for True)
+    return render_template('administrador/editar_usuario.html', 
+                           usuario=usuario_alvo, 
+                           tipos_disponiveis=tipos_disponiveis_para_atribuicao,
+                           pode_alterar_tipo=(usuario_alvo['tipo'] != 'master-admin' and (editor_tipo == 'master-admin' or usuario_alvo['id'] != editor_id)))
+
+@app.route('/admin/usuarios/alterar_senha/<int:id_usuario_alvo>', methods=['POST'])
+def alterar_senha_usuario(id_usuario_alvo):
+    editor_tipo = session.get('tipo')
+    editor_id = session.get('user_id')
+
+    if editor_tipo not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
-
-    nova_senha = request.form['nova_senha']
-    
+    nova_senha = request.form.get('nova_senha')
+    if not nova_senha:
+        flash('Nova senha não pode ser vazia.', 'warning')
+        return redirect(url_for('editar_usuario', id_usuario_alvo=id_usuario_alvo)) 
     try:
         conn = get_db()
         cursor = conn.cursor()
@@ -836,36 +1000,104 @@ def alterar_senha_usuario(id):
             UPDATE usuarios 
             SET senha = ?
             WHERE id = ?
-        ''', (generate_password_hash(nova_senha), id))
+        ''', (generate_password_hash(nova_senha), id_usuario_alvo))
         conn.commit()
         flash('Senha alterada com sucesso!', 'success')
     except Exception as e:
         flash(f'Erro ao alterar senha: {str(e)}', 'danger')
-    finally:
-        conn.close()
     
-    return redirect(url_for('editar_usuario', id=id))
+    return redirect(url_for('editar_usuario', id_usuario_alvo=id_usuario_alvo))
 
-@app.route('/admin/usuarios/remover/<int:id>')
-def remover_usuario(id):
-    if session.get('tipo') != 'admin':
+@app.route('/admin/usuarios/remover/<int:id_usuario_alvo>')
+def remover_usuario(id_usuario_alvo):
+    editor_tipo = session.get('tipo')
+    editor_id = session.get('user_id')
+
+    if editor_tipo not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
-    # Não permite remover o próprio admin
-    if id == session.get('user_id'):
+    if id_usuario_alvo == editor_id:
         flash('Você não pode remover a si mesmo!', 'danger')
         return redirect(url_for('listar_usuarios'))
 
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT * FROM usuarios WHERE id = ?", (id_usuario_alvo,))
+    usuario_alvo = cursor.fetchone()
+
+    if not usuario_alvo:
+        flash('Usuário a ser removido não encontrado.', 'warning')
+        return redirect(url_for('listar_usuarios'))
+
+    pode_remover = False
+    mensagem_erro_permissao = 'Você não tem permissão para remover este tipo de usuário.'
+
+    if editor_tipo == 'master-admin':
+        # Master-admin não pode remover outro master-admin se for o único ativo restante
+        if usuario_alvo['tipo'] == 'master-admin':
+            if usuario_alvo['id'] == editor_id: # Já coberto acima, mas por segurança
+                pode_remover = False
+                mensagem_erro_permissao = 'Você não pode remover a si mesmo!'
+            else:
+                cursor.execute("SELECT COUNT(*) FROM usuarios WHERE tipo = 'master-admin' AND ativo = 1 AND id != ?", (id_usuario_alvo,))
+                count_outros_master_admins_ativos = cursor.fetchone()[0]
+                if count_outros_master_admins_ativos >= 1:
+                    pode_remover = True
+                else:
+                    cursor.execute("SELECT COUNT(*) FROM usuarios WHERE tipo = 'master-admin' AND ativo = 1")
+                    total_master_admins_ativos = cursor.fetchone()[0]
+                    if total_master_admins_ativos > 1:
+                        pode_remover = True
+                    else:
+                        pode_remover = False
+                        mensagem_erro_permissao = 'Não é possível remover o único Master Administrador ativo ou deixar o sistema sem Master Administradores ativos.'
+        else:
+            # Master-admin pode remover admin, manutencao, solicitante
+            pode_remover = True
+    
+    elif editor_tipo == 'admin':
+        # Admin NÃO PODE remover master-admin
+        if usuario_alvo['tipo'] == 'master-admin':
+            pode_remover = False
+            mensagem_erro_permissao = 'Administradores não podem remover usuários Master Administrador.'
+        # Admin NÃO PODE remover outros admins
+        elif usuario_alvo['tipo'] == 'admin':
+            pode_remover = False
+            mensagem_erro_permissao = 'Administradores não podem remover outros Administradores.'
+        # Admin PODE remover solicitante e manutencao
+        elif usuario_alvo['tipo'] in ['solicitante', 'manutencao']:
+            pode_remover = True
+        else:
+            pode_remover = False # Por segurança, nega outros casos
+
+    if not pode_remover:
+        flash(mensagem_erro_permissao, 'danger')
+        return redirect(url_for('listar_usuarios'))
+
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        cursor.execute("DELETE FROM usuarios WHERE id = ?", (id,))
+        cursor.execute("SELECT COUNT(*) FROM ordens_servico WHERE solicitante_id = ? OR tecnico_id = ?", (id_usuario_alvo, id_usuario_alvo))
+        if cursor.fetchone()[0] > 0:
+            flash(f"Não é possível remover o usuário (ID: {id_usuario_alvo}) pois ele está associado a Ordens de Serviço. Considere desativá-lo.", 'warning')
+            return redirect(url_for('listar_usuarios'))
+
+        cursor.execute("SELECT COUNT(*) FROM registros_manutencao_direta WHERE criado_por_id = ? OR concluido_por_admin_id = ?", (id_usuario_alvo, id_usuario_alvo))
+        if cursor.fetchone()[0] > 0:
+            flash(f"Não é possível remover o usuário (ID: {id_usuario_alvo}) pois ele está associado a Registros de Manutenção. Considere desativá-lo.", 'warning')
+            return redirect(url_for('listar_usuarios'))
+
+        cursor.execute("DELETE FROM participantes_os WHERE tecnico_id = ?", (id_usuario_alvo,))
+        cursor.execute("DELETE FROM participantes_registro_direto WHERE tecnico_id = ?", (id_usuario_alvo,))
+ 
+        
+        cursor.execute("DELETE FROM usuarios WHERE id = ?", (id_usuario_alvo,))
         conn.commit()
         flash('Usuário removido com sucesso!', 'success')
+    except sqlite3.IntegrityError as e:
+        flash(f"Erro de integridade ao remover usuário: {str(e)}. Verifique se o usuário está referenciado em outras tabelas.", 'danger')
     except Exception as e:
         flash(f'Erro ao remover usuário: {str(e)}', 'danger')
-    finally:
-        conn.close()
     
     return redirect(url_for('listar_usuarios'))
 
