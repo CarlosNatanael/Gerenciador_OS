@@ -84,76 +84,68 @@ def logout():
 
 
 # --- SOLICITANTE ---
-@app.route('/solicitante/abrir', methods=['GET', 'POST']) # Ou a URL que você estiver usando, ex: /os/abrir
+@app.route('/solicitante/abrir', methods=['GET', 'POST'])
 def abrir_os():
-    # Verificação de permissão (mantida da sua versão e sugestões anteriores)
-    if session.get('tipo') not in ['solicitante', 'admin']:
+    if session.get('tipo') not in ['solicitante', 'admin', 'master-admin']:
         flash('Acesso não autorizado para esta funcionalidade.', 'danger')
         return redirect(url_for('login'))
 
-    # Obter a conexão gerenciada pelo Flask para esta requisição
-    conn = get_db()
-    cursor = conn.cursor()
-
-    # Buscar locais ativos para o formulário (executado em GET e antes do POST)
-    cursor.execute("SELECT id, nome FROM locais WHERE ativo = 1 ORDER BY nome")
-    locais_ativos = cursor.fetchall()
+    conn_get = get_db() # Para buscar locais no GET
+    cursor_get = conn_get.cursor()
+    cursor_get.execute("SELECT id, nome FROM locais WHERE ativo = 1 ORDER BY nome")
+    locais_ativos = cursor_get.fetchall()
 
     if request.method == 'POST':
         equipamento = request.form.get('equipamento', '').strip()
         problema = request.form.get('problema', '').strip()
-        prioridade = request.form.get('prioridade', 'normal')
-        local_selecionado = request.form.get('local') # Nome do local
-        setor = request.form.get('setor', '').strip() # Campo setor
-
-        data_agendamento = request.form.get('data_agendamento') if prioridade == 'normal' else None
-        horario_agendamento = request.form.get('horario_agendamento') if prioridade == 'normal' else None
+        prioridade = request.form.get('prioridade') # Será 'normal' ou 'urgente'
+        local_selecionado = request.form.get('local')
+        setor = request.form.get('setor', '').strip()
         
-        if not equipamento or not problema or not local_selecionado:
-            flash('Preencha todos os campos obrigatórios (Equipamento, Problema e Local).', 'danger')
-            # locais_ativos já foi buscado, pode renderizar o template diretamente
-            # A conexão será fechada automaticamente pelo teardown_appcontext
-            return render_template('solicitante/abrir_os.html', locais=locais_ativos)
+        
+        if not equipamento or not problema or not local_selecionado or not prioridade:
+            flash('Preencha todos os campos obrigatórios (Equipamento, Local, Problema e Prioridade).', 'danger')
+            return render_template('solicitante/abrir_os.html', 
+                                   locais=locais_ativos, 
+                                   datetime=datetime,
+                                   request_form_data=request.form)
         
         data_abertura = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        
+
         try:
-            # O cursor já está pronto para uso
-            cursor.execute("SELECT id FROM usuarios WHERE usuario = ?", (session['usuario'],))
-            user = cursor.fetchone()
-            
-            if not user: # Adicionar verificação caso o usuário não seja encontrado na sessão
-                flash('Erro de sessão do usuário. Por favor, faça login novamente.', 'danger')
+            cursor_get.execute("SELECT id FROM usuarios WHERE usuario = ?", (session['usuario'],))
+            user = cursor_get.fetchone()
+
+            if not user:
+                flash("Erro de sessão do usuário. Faça login novamente.", "danger")
                 return redirect(url_for('login'))
 
-            # Salvar o nome do local diretamente na coluna 'local' (que é TEXT)
-            cursor.execute("""
+            cursor_get.execute("""
                 INSERT INTO ordens_servico 
-                (data, equipamento, problema, prioridade, status, solicitante_id, 
-                 local, setor, data_agendamento, horario_agendamento) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (data_abertura, equipamento, problema, prioridade, 'Aberta', user['id'], 
-                  local_selecionado, setor, data_agendamento, horario_agendamento))
+                (data, equipamento, problema, prioridade, status, solicitante_id, local, setor) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (data_abertura, equipamento, problema, prioridade, 'Aberta', user['id'], local_selecionado, setor))
             
-            conn.commit() # Commit na conexão gerenciada
-            flash('Ordem de serviço enviada com sucesso!', 'success')
+            conn_get.commit()
+            flash('Ordem de serviço enviada com sucesso! A equipe de manutenção fará o agendamento.', 'success') # Mensagem ajustada
             
-            # Redirecionamento após sucesso
-            if session.get('tipo') == 'admin':
+            if session.get('tipo') == 'solicitante':
+                return redirect(url_for('minhas_os')) 
+            else: # admin ou master-admin
                 return redirect(url_for('admin_dashboard'))
-            else:
-                # Para solicitantes, talvez redirecionar para 'minhas_os' ou uma página de sucesso específica
-                # em vez de voltar para 'abrir_os' e potencialmente reenviar o formulário com F5.
-                return redirect(url_for('minhas_os')) # Sugestão: redirecionar para minhas_os
             
         except sqlite3.Error as e:
-            conn.rollback() # Rollback na conexão gerenciada
+            conn_get.rollback()
             flash(f'Erro ao salvar OS: {str(e)}', 'danger')
-        # A conexão será fechada automaticamente pelo teardown_appcontext
-    
-    # Para requisições GET, locais_ativos já foi buscado
-    # A conexão será fechada automaticamente pelo teardown_appcontext
-    return render_template('solicitante/abrir_os.html', locais=locais_ativos)
+
+        return render_template('solicitante/abrir_os.html', 
+                               locais=locais_ativos, 
+                               datetime=datetime, # Se usado no template
+                               request_form_data=request.form) # Para repopular
+
+    return render_template('solicitante/abrir_os.html', 
+                           locais=locais_ativos, 
+                           datetime=datetime)
 
 @app.route('/solicitante/minhas_os')
 def minhas_os():
@@ -470,70 +462,98 @@ def detalhe_os(id_os):
         return redirect(url_for('manutencao_dashboard'))
 
 
-@app.route('/manutencao/agendar/<int:id>', methods=['GET', 'POST'])
-def agendar_os(id):
-    if session.get('tipo') != 'manutencao':
-        return redirect(url_for('login'))
-
+@app.route('/manutencao/agendar/<int:id_os>', methods=['GET', 'POST'])
+@manutencao_required
+def agendar_os(id_os):
     conn = get_db()
     cursor = conn.cursor()
-    
+
+    cursor.execute("SELECT * FROM ordens_servico WHERE id = ?", (id_os,))
+    os_data = cursor.fetchone()
+
+    if not os_data:
+        flash('Ordem de Serviço não encontrada.', 'danger')
+        return redirect(url_for('manutencao_dashboard'))
+
+    if os_data['status'] in ['Concluída', 'Cancelada']:
+        flash(f"OS #{id_os} já está {os_data['status'].lower()} e não pode ser reagendada.", 'warning')
+        return redirect(url_for('detalhe_os', id_os=id_os))
+
     if request.method == 'POST':
-        data_agendamento = request.form['data_agendamento']
-        horario_agendamento = request.form['horario_agendamento']
-        tecnicos_participantes = request.form.getlist('tecnicos_participantes')
-        
+        data_agendamento_str = request.form.get('data_agendamento')
+        horario_agendamento_str = request.form.get('horario_agendamento')
+        ids_tecnicos_participantes = request.form.getlist('tecnicos_participantes')
+
+        if not data_agendamento_str or not horario_agendamento_str or not ids_tecnicos_participantes:
+            flash('Data, horário e pelo menos um técnico participante são obrigatórios para o agendamento.', 'danger')
+            cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
+            todos_tecnicos = cursor.fetchall()
+            return render_template('manutencao/agendar_os.html', 
+                                   os=os_data, 
+                                   todos_tecnicos_manutencao=todos_tecnicos,
+                                   request_form_data=request.form)
+
+
         try:
-            # Atualiza a OS com agendamento
             cursor.execute("""
                 UPDATE ordens_servico 
                 SET data_agendamento = ?, 
                     horario_agendamento = ?,
                     status = 'Agendada',
-                    tecnico_id = ?
+                    tecnico_id = ?  -- ID do usuário de manutenção que está agendando
                 WHERE id = ?
-            """, (data_agendamento, horario_agendamento, session.get('user_id'), id))
+            """, (data_agendamento_str, horario_agendamento_str, session.get('user_id'), id_os))
             
-            # Adiciona técnicos participantes
-            for tecnico_id in tecnicos_participantes:
-                cursor.execute("""
-                    INSERT INTO participantes_os (os_id, tecnico_id)
-                    VALUES (?, ?)
-                """, (id, tecnico_id))
+            cursor.execute("DELETE FROM participantes_os WHERE os_id = ?", (id_os,))
             
+            # 2. Adicionar os novos participantes selecionados
+            for tecnico_id_str in ids_tecnicos_participantes:
+                try:
+                    tecnico_id = int(tecnico_id_str)
+                    cursor.execute("""
+                        INSERT INTO participantes_os (os_id, tecnico_id)
+                        VALUES (?, ?)
+                    """, (id_os, tecnico_id))
+                except ValueError:
+                    flash(f"ID de técnico inválido ({tecnico_id_str}) ignorado.", "warning")
+
             # Registra no histórico
+            observacao_historico = f"Agendado para {data_agendamento_str} {horario_agendamento_str}."
+            if ids_tecnicos_participantes:
+                cursor.execute("SELECT group_concat(nome) FROM usuarios WHERE id IN ({})".format(','.join('?'*len(ids_tecnicos_participantes))), ids_tecnicos_participantes)
+                nomes_participantes = cursor.fetchone()[0]
+                if nomes_participantes:
+                    observacao_historico += f" Equipe: {nomes_participantes}."
+
             cursor.execute("""
                 INSERT INTO historico_os 
                 (os_id, usuario_id, acao, observacao)
                 VALUES (?, ?, ?, ?)
-            """, (id, session.get('user_id'), 'OS Agendada', 
-                 f"Agendado para {data_agendamento} {horario_agendamento}"))
+            """, (id_os, session.get('user_id'), 'OS Agendada', observacao_historico))
             
             conn.commit()
             flash('OS agendada com sucesso!', 'success')
-            return redirect(url_for('manutencao_dashboard'))
-        except Exception as e:
-            conn.rollback()
-            flash(f'Erro ao agendar: {str(e)}', 'danger')
-    
-    # Busca dados da OS
-    cursor.execute("SELECT * FROM ordens_servico WHERE id = ?", (id,))
-    os_data = cursor.fetchone()
-    
-    # Busca lista de técnicos disponíveis (exceto o próprio usuário)
-    cursor.execute("""
-        SELECT id, nome FROM usuarios 
-        WHERE tipo = 'manutencao' AND id != ?
-        ORDER BY nome
-    """, (session.get('user_id'),))
-    tecnicos = cursor.fetchall()
-    
-    conn.close()
-    
-    return render_template('manutencao/agendar_os.html', 
-                         os=os_data, 
-                         tecnicos=tecnicos)
+            return redirect(url_for('detalhe_os', id_os=id_os))
 
+        except sqlite3.Error as e:
+            conn.rollback()
+            flash(f'Erro de banco de dados ao agendar OS: {str(e)}', 'danger')
+        except Exception as e:
+            flash(f'Erro ao agendar OS: {str(e)}', 'danger')
+        
+        cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
+        todos_tecnicos = cursor.fetchall()
+        return render_template('manutencao/agendar_os.html', 
+                               os=os_data, 
+                               todos_tecnicos_manutencao=todos_tecnicos, # Nome da variável consistente
+                               request_form_data=request.form)
+
+    cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
+    todos_tecnicos = cursor.fetchall()
+
+    return render_template('manutencao/agendar_os.html', 
+                           os=os_data, 
+                           todos_tecnicos_manutencao=todos_tecnicos)
 @app.route('/manutencao/registros/novo', methods=['GET', 'POST'])
 @manutencao_required
 def novo_registro_direto():
