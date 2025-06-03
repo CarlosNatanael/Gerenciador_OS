@@ -2,7 +2,7 @@ import sqlite3
 from werkzeug.security import generate_password_hash
 
 def criar_banco_dados():
-    conn = None  # Inicializar conn para o bloco finally
+    conn = None
     try:
         conn = sqlite3.connect('db/os.db')
         cursor = conn.cursor()
@@ -13,22 +13,6 @@ def criar_banco_dados():
         cursor.execute("PRAGMA busy_timeout = 5000") # Mantido
 
         print("\n--- Modificando Tabela usuarios ---")
-        # Tabela de usuários
-        # Removendo a tabela antiga para recriar com as novas constraints e colunas
-        # ATENÇÃO: ISSO APAGARÁ TODOS OS USUÁRIOS EXISTENTES.
-        # Em um ambiente de produção, você usaria ALTER TABLE para adicionar colunas
-        # e migraria os dados. Para desenvolvimento, recriar pode ser mais simples.
-        # Se preferir ALTER TABLE:
-        # try:
-        #     cursor.execute("ALTER TABLE usuarios ADD COLUMN especialidade TEXT")
-        #     print("Coluna 'especialidade' adicionada a 'usuarios'.")
-        # except sqlite3.OperationalError as e:
-        #     if "duplicate column name" in str(e):
-        #         print("Coluna 'especialidade' já existe em 'usuarios'.")
-        #     else:
-        #         raise e
-        # Para mudar os tipos, seria mais complexo com ALTER. Recriar é mais direto para desenvolvimento.
-
         cursor.execute("DROP TABLE IF EXISTS usuarios") # CUIDADO: Apaga dados!
         cursor.execute('''
         CREATE TABLE usuarios (
@@ -47,11 +31,6 @@ def criar_banco_dados():
 
         print("\n--- Modificando Tabela ordens_servico ---")
         # Tabela de ordens de serviço
-        # A coluna 'fim' já existe. Não precisa ser alterada no schema,
-        # mas a lógica de preenchimento em app.py mudará.
-        # A coluna 'tempo_reparo' também já existe.
-        # Nenhuma alteração de schema necessária aqui para a data/hora manual de conclusão.
-        # A tabela `participantes_os` já existe e pode ser usada para os técnicos.
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS ordens_servico (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -211,7 +190,6 @@ def criar_banco_dados():
 
 if __name__ == "__main__":
     # ATENÇÃO: Executar este script irá APAGAR e RE CRIAR a tabela USUARIOS se ela for dropada.
-    # Faça backup do seu arquivo os.db se tiver dados importantes.
     print("Este script irá modificar o schema do banco de dados.")
     print("A tabela 'usuarios' será RECRIADA, o que APAGARÁ todos os usuários existentes.")
     confirmacao = input("Deseja continuar? (s/N): ")

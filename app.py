@@ -55,7 +55,7 @@ def login():
         conn = get_db()
         cursor = conn.cursor()
         
-        # Busca apenas o usuário (não compare a senha diretamente)
+        # Busca apenas o usuário
         cursor.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario,))
         user = cursor.fetchone()
         conn.close()
@@ -66,7 +66,7 @@ def login():
             session['user_id'] = user['id']  # Armazena o ID do usuário na sessão
 
             if user['tipo'] == 'solicitante':
-                return redirect(url_for('minhas_os')) # MODIFICADO AQUI
+                return redirect(url_for('minhas_os'))
             elif user['tipo'] == 'manutencao':
                 return redirect(url_for('manutencao_dashboard'))
             elif user['tipo'] == 'admin':
@@ -196,61 +196,99 @@ def manutencao_dashboard():
 
     return render_template('manutencao/listar_os.html', os_abertas=os_abertas)
 
-@app.route('/manutencao/concluir/<int:id>', methods=['POST'])
-def concluir_os(id):
-    if session.get('tipo') != 'manutencao':
-        return redirect(url_for('login'))
+@app.route('/manutencao/concluir/<int:id_os>', methods=['POST']) # Mudei 'id' para 'id_os' para clareza
+@manutencao_required # Seu decorador
+def concluir_os(id_os):
+    if request.method == 'POST':
+        solucao = request.form.get('solucao','').strip()
+        data_conclusao_str = request.form.get('data_conclusao_manual')
+        hora_conclusao_str = request.form.get('hora_conclusao_manual')
+        ids_tecnicos_participantes = request.form.getlist('tecnicos_participantes') # Lista de IDs
 
-    solucao = request.form['solucao']
-    tecnicos_participantes = request.form.getlist('tecnicos_participantes')
-    fim = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        if not solucao or not data_conclusao_str or not hora_conclusao_str or not ids_tecnicos_participantes:
+            flash('Solução, data/hora da conclusão e técnicos participantes são obrigatórios.', 'danger')
+            return redirect(url_for('detalhe_os', id_os=id_os)) # Volta para a página de detalhes
 
-    conn = get_db()
-    try:
+        try:
+            # Combinar data e hora manuais
+            fim_manual_dt_str = f"{data_conclusao_str} {hora_conclusao_str}:00" # Adiciona segundos
+            fim_manual_dt = datetime.strptime(fim_manual_dt_str, '%Y-%m-%d %H:%M:%S')
+        except ValueError:
+            flash('Formato de data ou hora da conclusão inválido.', 'danger')
+            return redirect(url_for('detalhe_os', id_os=id_os))
+
+        conn = get_db()
         cursor = conn.cursor()
-        
-        # Calcula tempo de reparo
-        cursor.execute("SELECT data, inicio FROM ordens_servico WHERE id = ?", (id,))
-        os_data = cursor.fetchone()
-        
-        inicio = os_data['inicio'] if os_data['inicio'] else os_data['data']
-        inicio_dt = datetime.strptime(inicio, '%Y-%m-%d %H:%M:%S')
-        fim_dt = datetime.strptime(fim, '%Y-%m-%d %H:%M:%S')
-        tempo_total = (fim_dt - inicio_dt).total_seconds() / 60  # em minutos
 
-        # Atualiza a OS
-        cursor.execute("""
-            UPDATE ordens_servico
-            SET solucao = ?, 
-                status = 'Concluída', 
-                tempo_reparo = ?, 
-                fim = ?,
-                inicio = ?
-            WHERE id = ?
-        """, (solucao, tempo_total, fim, inicio, id))
-        
-        # Adiciona técnicos participantes
-        for tecnico_id in tecnicos_participantes:
+        try:
+            # Buscar data de início da OS para calcular tempo de reparo
+            cursor.execute("SELECT data, inicio FROM ordens_servico WHERE id = ?", (id_os,))
+            os_data = cursor.fetchone()
+
+            if not os_data:
+                flash('OS não encontrada.', 'danger')
+                return redirect(url_for('manutencao_dashboard'))
+
+            inicio_reparo_str = os_data['inicio'] if os_data['inicio'] else os_data['data'] # Data de abertura se não houve início formal
+            inicio_reparo_dt = datetime.strptime(inicio_reparo_str, '%Y-%m-%d %H:%M:%S')
+
+            if fim_manual_dt < inicio_reparo_dt:
+                flash('A data de conclusão não pode ser anterior à data de início/abertura da OS.', 'warning')
+                return redirect(url_for('detalhe_os', id_os=id_os))
+
+            tempo_total_segundos = (fim_manual_dt - inicio_reparo_dt).total_seconds()
+            tempo_total_minutos = round(tempo_total_segundos / 60)
+
+            # Atualizar a OS
+            # Se 'inicio' era NULL, atualize com a data de abertura para consistência no cálculo.
+            inicio_final_para_db = inicio_reparo_str 
+            
             cursor.execute("""
-                INSERT OR IGNORE INTO participantes_os (os_id, tecnico_id)
-                VALUES (?, ?)
-            """, (id, tecnico_id))
-        
-        # Registra no histórico
-        cursor.execute("""
-            INSERT INTO historico_os 
-            (os_id, usuario_id, acao)
-            VALUES (?, ?, ?)
-        """, (id, session.get('user_id'), 'OS Concluída'))
-        
-        conn.commit()
-        flash('OS concluída com sucesso!', 'success')
-    except Exception as e:
-        conn.rollback()
-        flash(f'Erro ao concluir OS: {str(e)}', 'danger')
-    finally:
-        conn.close()
-    
+                UPDATE ordens_servico
+                SET solucao = ?, 
+                    status = 'Concluída', 
+                    tempo_reparo = ?, 
+                    fim = ?,
+                    inicio = ?  -- Atualiza o início se ele não estava formalmente registrado
+                WHERE id = ?
+            """, (solucao, tempo_total_minutos, fim_manual_dt.strftime('%Y-%m-%d %H:%M:%S'), inicio_final_para_db, id_os))
+            
+            # Gerenciar técnicos participantes:
+            # 1. Remover participantes antigos desta OS (para evitar duplicatas se o form for reenviado ou editado)
+            cursor.execute("DELETE FROM participantes_os WHERE os_id = ?", (id_os,))
+            # 2. Adicionar os novos participantes selecionados
+            for tecnico_id_str in ids_tecnicos_participantes:
+                try:
+                    tecnico_id = int(tecnico_id_str)
+                    cursor.execute("""
+                        INSERT INTO participantes_os (os_id, tecnico_id)
+                        VALUES (?, ?)
+                    """, (id_os, tecnico_id))
+                except ValueError:
+                    flash(f"ID de técnico inválido encontrado: {tecnico_id_str}", "warning")
+                    # Decida se quer continuar ou parar. Por ora, continua com os válidos.
+            
+            # Registrar no histórico (seu código de histórico aqui)
+            cursor.execute("""
+                INSERT INTO historico_os (os_id, usuario_id, acao, observacao)
+                VALUES (?, ?, ?, ?)
+            """, (id_os, session.get('user_id'), 'OS Concluída', f"Solução: {solucao}"))
+            
+            conn.commit()
+            flash('OS concluída com sucesso!', 'success')
+            return redirect(url_for('detalhe_os', id_os=id_os))
+
+        except sqlite3.Error as e:
+            conn.rollback()
+            flash(f'Erro de banco de dados ao concluir OS: {str(e)}', 'danger')
+            return redirect(url_for('detalhe_os', id_os=id_os))
+        except Exception as e:
+            # conn.rollback() # Se a conexão ainda estiver ativa e for um erro não SQLite
+            flash(f'Erro ao concluir OS: {str(e)}', 'danger')
+            return redirect(url_for('detalhe_os', id_os=id_os))
+        # finally:
+            # A conexão é gerenciada pelo teardown_appcontext
+
     return redirect(url_for('manutencao_dashboard'))
 
 @app.route('/manutencao/iniciar/<int:id>')
@@ -295,84 +333,141 @@ def iniciar_os(id):
     
     return redirect(url_for('manutencao_dashboard'))
 
-@app.route('/manutencao/os/<int:id>')
-def detalhe_os(id):
-    if session.get('tipo') != 'manutencao':
-        return redirect(url_for('login'))
+@app.route('/manutencao/os/<int:id_os>') 
+@manutencao_required
+def detalhe_os(id_os):
+    conn = get_db()
+    cursor = conn.cursor()
 
-    conn = None
     try:
-        conn = get_db()
-        cursor = conn.cursor()
-        
-        # Busca a OS principal com informações do solicitante e técnico
+        # Busca a OS principal com informações do solicitante e técnico inicial
         cursor.execute("""
             SELECT os.*, 
                    s.nome as solicitante_nome,
                    s.email as solicitante_email,
-                   t.nome as tecnico_nome,
-                   t.email as tecnico_email
+                   t.nome as tecnico_nome_inicial,   -- Renomeado para clareza
+                   t.email as tecnico_email_inicial -- Renomeado para clareza
             FROM ordens_servico os
             LEFT JOIN usuarios s ON os.solicitante_id = s.id
-            LEFT JOIN usuarios t ON os.tecnico_id = t.id
+            LEFT JOIN usuarios t ON os.tecnico_id = t.id  -- tecnico_id na OS é o técnico principal/inicial
             WHERE os.id = ?
-        """, (id,))
+        """, (id_os,))
         os_data = cursor.fetchone()
-        
+
         if not os_data:
             flash('Ordem de Serviço não encontrada.', 'danger')
             return redirect(url_for('manutencao_dashboard'))
-        
-        # Prepara os dados para o template
+
+        # Prepara o dicionário 'os' com todos os campos relevantes da OS
         os_dict = {
             'id': os_data['id'],
+            'data': os_data['data'],
             'equipamento': os_data['equipamento'],
             'problema': os_data['problema'],
             'prioridade': os_data['prioridade'],
             'status': os_data['status'],
-            'data': os_data['data'],
             'solucao': os_data['solucao'],
             'tempo_reparo': os_data['tempo_reparo'],
-            'fim': os_data['fim']
+            'inicio': os_data['inicio'],
+            'fim': os_data['fim'],
+            'solicitante_id': os_data['solicitante_id'],
+            'tecnico_id': os_data['tecnico_id'], # ID do técnico principal/inicial
+            'local': os_data['local'],
+            'setor': os_data['setor'],
+            'data_agendamento': os_data['data_agendamento'],
+            'horario_agendamento': os_data['horario_agendamento']
         }
-        
-        # Cria objetos para solicitante e técnico
-        solicitante = {
+
+        solicitante_info = {
             'nome': os_data['solicitante_nome'],
             'email': os_data['solicitante_email']
-        }
-        
-        tecnico = {
-            'nome': os_data['tecnico_nome'],
-            'email': os_data['tecnico_email']
-        } if os_data['tecnico_nome'] else None
-        
-        # Busca histórico de alterações (se aplicável)
+        } if os_data['solicitante_nome'] else None
+
+        tecnico_inicial_info = {
+            'nome': os_data['tecnico_nome_inicial'],
+            'email': os_data['tecnico_email_inicial']
+        } if os_data['tecnico_nome_inicial'] else None
+
         cursor.execute("""
             SELECT h.*, u.nome as usuario_nome
             FROM historico_os h
             JOIN usuarios u ON h.usuario_id = u.id
             WHERE h.os_id = ?
             ORDER BY h.data_alteracao DESC
-        """, (id,))
+        """, (id_os,))
         historico = cursor.fetchall()
-        
+
+        todos_tecnicos_manutencao = []
+        if os_dict['status'] != 'Concluída' and os_dict['status'] != 'Cancelada':
+            cursor.execute("""
+                SELECT id, nome, especialidade 
+                FROM usuarios 
+                WHERE tipo = 'manutencao' AND ativo = 1 
+                ORDER BY nome
+            """)
+            todos_tecnicos_manutencao = cursor.fetchall()
+
+        participantes_conclusao = []
+        if os_dict['status'] == 'Concluída':
+            cursor.execute("""
+                SELECT u.id, u.nome, u.especialidade
+                FROM participantes_os po
+                JOIN usuarios u ON po.tecnico_id = u.id
+                WHERE po.os_id = ?
+                ORDER BY u.nome
+            """, (id_os,))
+            participantes_conclusao = cursor.fetchall()
+
+        # Exemplo de como os dados são buscados e preparados (resumido)
+        cursor.execute("""
+            SELECT os.*, 
+                   s.nome as solicitante_nome, s.email as solicitante_email,
+                   t.nome as tecnico_nome_inicial, t.email as tecnico_email_inicial
+            FROM ordens_servico os
+            LEFT JOIN usuarios s ON os.solicitante_id = s.id
+            LEFT JOIN usuarios t ON os.tecnico_id = t.id
+            WHERE os.id = ?
+        """, (id_os,))
+        os_data = cursor.fetchone()
+
+        if not os_data:
+            flash('Ordem de Serviço não encontrada.', 'danger')
+            return redirect(url_for('manutencao_dashboard'))
+
+        os_dict = dict(os_data) # Maneira simples de converter a linha em dicionário
+
+        solicitante_info = {'nome': os_data['solicitante_nome'], 'email': os_data['solicitante_email']} if os_data['solicitante_nome'] else None
+        tecnico_inicial_info = {'nome': os_data['tecnico_nome_inicial'], 'email': os_data['tecnico_email_inicial']} if os_data['tecnico_nome_inicial'] else None
+
+        cursor.execute("SELECT h.*, u.nome as usuario_nome FROM historico_os h JOIN usuarios u ON h.usuario_id = u.id WHERE h.os_id = ? ORDER BY h.data_alteracao DESC", (id_os,))
+        historico = cursor.fetchall()
+
+        todos_tecnicos_manutencao = []
+        if os_dict['status'] != 'Concluída' and os_dict['status'] != 'Cancelada':
+            cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
+            todos_tecnicos_manutencao = cursor.fetchall()
+
+        participantes_conclusao = []
+        if os_dict['status'] == 'Concluída':
+            cursor.execute("SELECT u.id, u.nome, u.especialidade FROM participantes_os po JOIN usuarios u ON po.tecnico_id = u.id WHERE po.os_id = ? ORDER BY u.nome", (id_os,))
+            participantes_conclusao = cursor.fetchall()
+
+
         return render_template(
             'manutencao/detalhe_os.html',
             os=os_dict,
-            solicitante=solicitante,
-            tecnico=tecnico,
-            historico=historico
+            solicitante=solicitante_info,
+            tecnico=tecnico_inicial_info, 
+            historico=historico,
+            todos_tecnicos_manutencao=todos_tecnicos_manutencao,
+            participantes_conclusao=participantes_conclusao,
+            datetime=datetime
         )
-        
+
     except Exception as e:
-        flash(f'Erro ao acessar OS: {str(e)}', 'danger')
-        app.logger.error(f"Erro ao acessar OS {id}: {str(e)}")
+        print(f"Erro ao acessar OS {id_os}: {str(e)}") 
+        flash(f'Erro ao carregar detalhes da OS: {str(e)}', 'danger')
         return redirect(url_for('manutencao_dashboard'))
-        
-    finally:
-        if conn:
-            conn.close()
 
 
 @app.route('/manutencao/agendar/<int:id>', methods=['GET', 'POST'])
@@ -438,6 +533,117 @@ def agendar_os(id):
     return render_template('manutencao/agendar_os.html', 
                          os=os_data, 
                          tecnicos=tecnicos)
+
+@app.route('/manutencao/registros/novo', methods=['GET', 'POST'])
+@manutencao_required
+def novo_registro_direto():
+    conn = get_db()
+    cursor = conn.cursor()
+
+    # Buscar todos os técnicos de manutenção ativos para o formulário
+    cursor.execute("""
+        SELECT id, nome, especialidade 
+        FROM usuarios 
+        WHERE tipo = 'manutencao' AND ativo = 1 
+        ORDER BY nome
+    """)
+    todos_tecnicos_manutencao = cursor.fetchall()
+    # conn.close() # Se get_db não usa g.db, mas idealmente usa.
+
+    if request.method == 'POST':
+        data_execucao_str = request.form.get('data_execucao')
+        hora_execucao_str = request.form.get('hora_execucao')
+        duracao_minutos_str = request.form.get('duracao_minutos')
+        equipamento_afetado = request.form.get('equipamento_afetado','').strip()
+        descricao_servico = request.form.get('descricao_servico','').strip()
+        observacoes = request.form.get('observacoes','').strip()
+        ids_tecnicos_participantes = request.form.getlist('tecnicos_participantes')
+        
+        criado_por_id = session.get('user_id')
+
+        # Validações
+        erros = []
+        if not data_execucao_str: erros.append("Data da execução é obrigatória.")
+        if not hora_execucao_str: erros.append("Hora da execução é obrigatória.")
+        if not duracao_minutos_str: erros.append("Duração da operação é obrigatória.")
+        if not descricao_servico: erros.append("Descrição do serviço é obrigatória.")
+        if not ids_tecnicos_participantes: erros.append("Pelo menos um técnico participante deve ser selecionado.")
+
+        data_execucao_completa_str = None
+        if data_execucao_str and hora_execucao_str:
+            try:
+                data_execucao_completa_str = f"{data_execucao_str} {hora_execucao_str}:00"
+                datetime.strptime(data_execucao_completa_str, '%Y-%m-%d %H:%M:%S') # Apenas para validar o formato
+            except ValueError:
+                erros.append("Formato de data ou hora da execução inválido.")
+        
+        duracao_minutos = None
+        if duracao_minutos_str:
+            try:
+                duracao_minutos = int(duracao_minutos_str)
+                if duracao_minutos <= 0:
+                    erros.append("Duração da operação deve ser um número positivo.")
+            except ValueError:
+                erros.append("Duração da operação deve ser um número.")
+
+        if erros:
+            for erro in erros:
+                flash(erro, 'danger')
+            return render_template(
+                'manutencao/novo_registro_direto.html',
+                todos_tecnicos_manutencao=todos_tecnicos_manutencao,
+                datetime=datetime # Para os valores padrão no template
+            )
+
+        conn_post = get_db() # Nova conexão/cursor para o POST dentro do try
+        cursor_post = conn_post.cursor()
+        try:
+            cursor_post.execute("""
+                INSERT INTO registros_manutencao_direta 
+                (data_execucao, duracao_minutos, equipamento_afetado, descricao_servico, observacoes, criado_por_id, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            """, (data_execucao_completa_str, duracao_minutos, equipamento_afetado, descricao_servico, observacoes, criado_por_id, 'Pendente Aprovacao'))
+            
+            novo_registro_id = cursor_post.lastrowid
+
+            # Adicionar participantes
+            for tecnico_id_str in ids_tecnicos_participantes:
+                try:
+                    tecnico_id = int(tecnico_id_str)
+                    cursor_post.execute("""
+                        INSERT INTO participantes_registro_direto (registro_id, tecnico_id)
+                        VALUES (?, ?)
+                    """, (novo_registro_id, tecnico_id))
+                except ValueError:
+                    # Ignorar IDs inválidos ou logar erro
+                    print(f"Aviso: ID de técnico inválido '{tecnico_id_str}' ignorado para registro {novo_registro_id}")
+
+            conn_post.commit()
+            flash('Registro de manutenção direta criado com sucesso e pendente de aprovação!', 'success')
+            return redirect(url_for('manutencao_dashboard')) # Ou uma página de "meus registros"
+
+        except sqlite3.Error as e:
+            conn_post.rollback()
+            flash(f'Erro de banco de dados ao salvar o registro: {str(e)}', 'danger')
+        except Exception as e:
+            # conn_post.rollback() # Se a transação não foi efetivada
+            flash(f'Erro ao salvar o registro: {str(e)}', 'danger')
+        # finally:
+            # conn_post.close() # Se não usar g.db
+
+        # Se chegou aqui, houve um erro no try, renderiza o form novamente
+        return render_template(
+            'manutencao/novo_registro_direto.html',
+            todos_tecnicos_manutencao=todos_tecnicos_manutencao,
+            datetime=datetime # Para os valores padrão no template
+        )
+
+    # Método GET
+    return render_template(
+        'manutencao/novo_registro_direto.html',
+        todos_tecnicos_manutencao=todos_tecnicos_manutencao,
+        datetime=datetime # Para os valores padrão no template
+    )
 
 # --- ADMIN ---
 @app.route('/admin')
@@ -543,7 +749,7 @@ def detalhe_os_admin(id):
             'solucao': os_data['solucao'],
             'tempo_reparo': os_data['tempo_reparo'] if 'tempo_reparo' in os_data and os_data['tempo_reparo'] is not None else None,
             'inicio': os_data['inicio'] if 'inicio' in os_data and os_data['inicio'] is not None else None,
-            'fim': os_data['fim'] if 'fim' in os_data and os_data['fim'] is not None else None,
+            'fim': os_data['fim'] if 'fim' in os_data.keys() and os_data['fim'] is not None else None,
             'local': os_data['local'] if 'local' in os_data.keys() and os_data['local'] is not None else None,
             'setor': os_data['setor'] if 'setor' in os_data.keys() and os_data['setor'] is not None else None
         }
@@ -585,6 +791,114 @@ def detalhe_os_admin(id):
         
     finally:
         conn.close()
+
+# --- Registro de Manutenção ----
+@app.route('/admin/registros_manutencao')
+def listar_registros_diretos():
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+    
+    cursor.execute("""
+        SELECT rmd.*, u_criador.nome as nome_criador
+        FROM registros_manutencao_direta rmd
+        JOIN usuarios u_criador ON rmd.criado_por_id = u_criador.id
+        ORDER BY rmd.data_registro DESC
+    """)
+    registros = cursor.fetchall()
+
+    return render_template('administrador/listar_registros_diretos.html', registros=registros)
+
+@app.route('/admin/registros_manutencao/processar/<int:id_registro>', methods=['POST'])
+def processar_registro_direto(id_registro):
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    acao = request.form.get('acao') # 'concluir' ou 'cancelar'
+    admin_id = session.get('user_id')
+    data_atual_str = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    try:
+        if acao == 'concluir':
+            cursor.execute("""
+                UPDATE registros_manutencao_direta
+                SET status = 'Concluido',
+                    concluido_por_admin_id = ?,
+                    data_conclusao_admin = ?
+                WHERE id = ? AND status = 'Pendente Aprovacao' 
+            """, (admin_id, data_atual_str, id_registro))
+            if cursor.rowcount > 0:
+                flash('Registro de manutenção concluído com sucesso!', 'success')
+            else:
+                flash('Não foi possível concluir o registro (pode já ter sido processado ou não existe).', 'warning')
+        
+        elif acao == 'cancelar':
+            cursor.execute("""
+                UPDATE registros_manutencao_direta
+                SET status = 'Cancelado',
+                    concluido_por_admin_id = ?, 
+                    data_conclusao_admin = ? 
+                WHERE id = ? AND status = 'Pendente Aprovacao'
+            """, (admin_id, data_atual_str, id_registro))
+            if cursor.rowcount > 0:
+                flash('Registro de manutenção cancelado.', 'info')
+            else:
+                flash('Não foi possível cancelar o registro (pode já ter sido processado ou não existe).', 'warning')
+        else:
+            flash('Ação inválida.', 'danger')
+
+        conn.commit()
+    except sqlite3.Error as e:
+        conn.rollback()
+        flash(f'Erro de banco de dados ao processar o registro: {str(e)}', 'danger')
+    except Exception as e:
+        flash(f'Erro ao processar o registro: {str(e)}', 'danger')
+    
+    return redirect(url_for('detalhe_registro_direto', id_registro=id_registro))
+
+@app.route('/admin/registros_manutencao/<int:id_registro>')
+def detalhe_registro_direto(id_registro):
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    conn = get_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT rmd.*, 
+               u_criador.nome as nome_criador, 
+               u_admin.nome as nome_admin_conclusao
+        FROM registros_manutencao_direta rmd
+        JOIN usuarios u_criador ON rmd.criado_por_id = u_criador.id
+        LEFT JOIN usuarios u_admin ON rmd.concluido_por_admin_id = u_admin.id
+        WHERE rmd.id = ?
+    """, (id_registro,))
+    registro = cursor.fetchone()
+
+    if not registro:
+        flash('Registro de manutenção não encontrado.', 'danger')
+        return redirect(url_for('listar_registros_diretos'))
+
+    cursor.execute("""
+        SELECT u.nome, u.especialidade
+        FROM participantes_registro_direto prd
+        JOIN usuarios u ON prd.tecnico_id = u.id
+        WHERE prd.registro_id = ?
+        ORDER BY u.nome
+    """, (id_registro,))
+    participantes = cursor.fetchall()
+
+    return render_template('administrador/detalhe_registro_direto.html', 
+                           registro=registro, 
+                           participantes=participantes)
 
 # --- ADMIN - Configurações ---
 @app.route('/admin/configuracoes')

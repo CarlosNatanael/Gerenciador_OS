@@ -54,6 +54,11 @@
                             <i class="bi bi-clipboard-data-fill"></i>Painel de OS
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('novo_registro_direto') }}">
+                            <i class="bi bi-clipboard-data-fill"></i>Registro de Manutenção
+                        </a>
+                    </li>
                 {% elif session.tipo == 'admin' %}
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
@@ -73,6 +78,11 @@
                      <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('listar_usuarios') }}">
                              <i class="bi bi-people-fill"></i>Gerenciar Usuários
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_registros_diretos') }}">
+                            <i class="bi bi-clipboard-data-fill"></i>Registro de Manutenção
                         </a>
                     </li>
                 {% endif %}

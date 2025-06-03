@@ -2,354 +2,326 @@
 
 /* 1. Variáveis de Cor para os Temas */
 :root {
-    /* Cores para o Tema Claro (Light) - Baseadas nos seus estilos atuais ou nos padrões do Bootstrap */
-    --bs-body-bg-light: #f8f9fa;
-    --bs-body-color-light: #212529;
-    --bs-emphasis-color-light: #000;
-    --card-bg-light: #ffffff;
-    --card-border-color-light: rgba(0, 0, 0, 0.125);
-    --card-header-bg-light: #f8f9fa; /* Seu .table thead th e .card-header usavam isso */
-    --card-header-color-light: #212529;
-    --navbar-bg-light: #0d6efd; /* Azul primário do Bootstrap que você usava */
-    --navbar-color-light: rgba(255, 255, 255, 0.75);
-    --navbar-brand-color-light: #ffffff;
-    --navbar-hover-color-light: #ffffff;
-    --offcanvas-bg-light: #f8f9fa; /* Fundo do offcanvas no modo claro */
-    --offcanvas-color-light: #212529; /* Cor do texto no offcanvas claro */
-    --offcanvas-link-hover-bg-light: #e9ecef;
-    --offcanvas-link-hover-color-light: #0d6efd; /* Cor primária para hover do link */
-    --table-header-bg-light: #f8f9fa; /* Seu .table thead th */
-    --table-header-color-light: #212529;
-    --form-control-focus-border-light: #86b7fe;
-    --form-control-focus-shadow-light: rgba(13, 110, 253, 0.25);
-    --link-color-light: #0d6efd;
-    --link-hover-color-light: #0a58ca;
+    /* Cores para o Tema Claro (Light) */
+    --app-body-bg-light: #f8f9fa;
+    --app-body-color-light: #212529;
+    --app-emphasis-color-light: #000;
+    --app-card-bg-light: #ffffff;
+    --app-card-border-color-light: rgba(0, 0, 0, 0.125);
+    --app-card-header-bg-light: #f0f0f0; /* Um cinza um pouco mais definido para cabeçalhos de card */
+    --app-card-header-color-light: #212529;
+    --app-navbar-bg-light: #0d6efd; /* Azul primário do Bootstrap */
+    --app-navbar-color-light: rgba(255, 255, 255, 0.85);
+    --app-navbar-brand-color-light: #ffffff;
+    --app-navbar-hover-color-light: #ffffff;
+    --app-offcanvas-bg-light: #f8f9fa;
+    --app-offcanvas-color-light: #212529;
+    --app-offcanvas-link-hover-bg-light: #e9ecef;
+    --app-offcanvas-link-hover-color-light: #0d6efd;
+    --app-table-header-bg-light: #e9ecef; /* Um pouco mais escuro que o fundo do card-header */
+    --app-table-header-color-light: #212529;
+    --app-table-accent-bg-light: rgba(0, 0, 0, 0.05); /* Para table-striped */
+    --app-table-hover-bg-light: rgba(0, 0, 0, 0.075);
+    --app-form-control-bg-light: #ffffff;
+    --app-form-control-color-light: #212529;
+    --app-form-control-border-light: #ced4da;
+    --app-form-control-focus-border-light: #86b7fe;
+    --app-form-control-focus-shadow-light: rgba(13, 110, 253, 0.25);
+    --app-link-color-light: #0d6efd;
+    --app-link-hover-color-light: #0a58ca;
+    --app-muted-color-light: #6c757d;
+
+    /* Cores de Botões Bootstrap como referência (não sobrescrevemos diretamente todas) */
+    --bs-primary: #0d6efd;
+    --bs-secondary: #6c757d;
+    --bs-success: #198754;
+    --bs-info: #0dcaf0;
+    --bs-warning: #ffc107;
+    --bs-danger: #dc3545;
+    --bs-light: #f8f9fa;
+    --bs-dark: #212529;
 }
 
 html[data-bs-theme="dark"] {
     /* Cores para o Tema Escuro (Dark) */
-    --bs-body-bg-dark: #212529; /* Fundo escuro padrão do Bootstrap */
-    --bs-body-color-dark: #dee2e6; /* Texto claro */
-    --bs-emphasis-color-dark: #fff;
-    --card-bg-dark: #2b3035; /* Um pouco mais claro que o body */
-    --card-border-color-dark: rgba(255, 255, 255, 0.125);
-    --card-header-bg-dark: #343a40; /* Cabeçalho de card escuro */
-    --card-header-color-dark: #ffffff;
-    --navbar-bg-dark: #1a1d20; /* Navbar mais escura */
-    --navbar-color-dark: rgba(255, 255, 255, 0.75);
-    --navbar-brand-color-dark: #ffffff;
-    --navbar-hover-color-dark: #ffffff;
-    --offcanvas-bg-dark: #2b3035; /* Fundo do offcanvas no modo escuro */
-    --offcanvas-color-dark: #dee2e6; /* Cor do texto no offcanvas escuro */
-    --offcanvas-link-hover-bg-dark: #343a40;
-    --offcanvas-link-hover-color-dark: #ffffff;
-    --table-header-bg-dark: #343a40;
-    --table-header-color-dark: #dee2e6;
-    --form-control-focus-border-dark: #5899e8; /* Um azul mais claro para contraste */
-    --form-control-focus-shadow-dark: rgba(88, 153, 232, 0.35);
-    --link-color-dark: #6ea8fe; /* Links mais claros para fundo escuro */
-    --link-hover-color-dark: #8bb9ff;
-
-    /* Bootstrap dark mode variables (se precisar sobrescrever mais) */
-    --bs-light-rgb: 222, 226, 230; /* Cor de texto --bs-light */
-    --bs-dark-rgb: 33, 37, 41;   /* Cor de texto --bs-dark */
+    --app-body-bg-dark: #1a1d20; /* Fundo bem escuro */
+    --app-body-color-dark: #dee2e6;
+    --app-emphasis-color-dark: #ffffff;
+    --app-card-bg-dark: #212529; /* Cards um pouco mais claros que o body */
+    --app-card-border-color-dark: #495057; /* Borda mais visível */
+    --app-card-header-bg-dark: #2b3035;
+    --app-card-header-color-dark: #ffffff;
+    --app-navbar-bg-dark: #0d1117; /* Navbar bem escura */
+    --app-navbar-color-dark: rgba(255, 255, 255, 0.85);
+    --app-navbar-brand-color-dark: #ffffff;
+    --app-navbar-hover-color-dark: #ffffff;
+    --app-offcanvas-bg-dark: #212529;
+    --app-offcanvas-color-dark: #dee2e6;
+    --app-offcanvas-link-hover-bg-dark: #343a40;
+    --app-offcanvas-link-hover-color-dark: #ffffff;
+    --app-table-header-bg-dark: #2b3035;
+    --app-table-header-color-dark: #dee2e6;
+    --app-table-accent-bg-dark: rgba(255, 255, 255, 0.05); /* Para table-striped */
+    --app-table-hover-bg-dark: rgba(255, 255, 255, 0.075);
+    --app-form-control-bg-dark: #2b3035; /* Fundo dos inputs */
+    --app-form-control-color-dark: #dee2e6; /* COR DO TEXTO DENTRO DOS INPUTS */
+    --app-form-control-border-dark: #495057;
+    --app-form-control-focus-border-dark: #5899e8;
+    --app-form-control-focus-shadow-dark: rgba(88, 153, 232, 0.35);
+    --app-link-color-dark: #6ea8fe;
+    --app-link-hover-color-dark: #8bb9ff;
+    --app-muted-color-dark: #adb5bd;
 }
 
 
 /* Estilos gerais */
 body {
-    background-color: var(--bs-body-bg-light);
-    color: var(--bs-body-color-light);
-    padding-top: 56px; /* Mantém o padding para a navbar fixa */
+    background-color: var(--app-body-bg-light);
+    color: var(--app-body-color-light);
+    padding-top: 56px; 
 }
 html[data-bs-theme="dark"] body {
-    background-color: var(--bs-body-bg-dark);
-    color: var(--bs-body-color-dark);
+    background-color: var(--app-body-bg-dark);
+    color: var(--app-body-color-dark);
 }
 
 /* Navbar personalizada */
-.navbar { /* Sua sombra */
+.navbar {
     box-shadow: 0 2px 4px rgba(0,0,0,.1);
 }
-.navbar.bg-primary { /* Assume que .bg-primary é usado no HTML para a navbar */
-    background-color: var(--navbar-bg-light) !important; 
+.navbar.bg-primary { /* Usado no base.html */
+    background-color: var(--app-navbar-bg-light) !important; 
 }
 html[data-bs-theme="dark"] .navbar.bg-primary {
-    background-color: var(--navbar-bg-dark) !important;
+    background-color: var(--app-navbar-bg-dark) !important;
 }
 .navbar-brand {
-    font-weight: 600; /* Seu estilo */
-    color: var(--navbar-brand-color-light) !important;
+    font-weight: 600;
+    color: var(--app-navbar-brand-color-light) !important;
 }
 html[data-bs-theme="dark"] .navbar-brand {
-    color: var(--navbar-brand-color-dark) !important;
+    color: var(--app-navbar-brand-color-dark) !important;
 }
-.navbar .btn-primary { /* Botão de toggle do offcanvas na navbar */
+.navbar .btn-primary { /* Botão do menu na navbar */
     background-color: transparent !important;
     border-color: transparent !important;
-    color: var(--navbar-brand-color-light) !important; /* Cor do ícone do botão */
+    color: var(--app-navbar-brand-color-light) !important;
 }
 html[data-bs-theme="dark"] .navbar .btn-primary {
-    color: var(--navbar-brand-color-dark) !important;
+    color: var(--app-navbar-brand-color-dark) !important;
 }
-.navbar .btn-primary:hover,
-.navbar .btn-primary:focus {
-    opacity: 0.75;
-}
-.navbar-nav .nav-link { /* Links como Sair/Login na navbar (se ainda existirem lá) */
-    padding: 0.5rem 1rem; /* Seu estilo */
-    color: var(--navbar-color-light);
-}
-html[data-bs-theme="dark"] .navbar-nav .nav-link {
-    color: var(--navbar-color-dark);
-}
-.navbar-nav .nav-link:hover {
-    color: var(--navbar-hover-color-light);
-}
-html[data-bs-theme="dark"] .navbar-nav .nav-link:hover {
-    color: var(--navbar-hover-color-dark);
-}
-.navbar-text { /* Texto "Olá, admin" se estiver na navbar */
-    color: var(--navbar-color-light);
-}
-html[data-bs-theme="dark"] .navbar-text {
-    color: var(--navbar-color-dark);
-}
+.navbar .btn-primary:hover, .navbar .btn-primary:focus { opacity: 0.75; }
 
+.navbar-nav .nav-link { padding: 0.5rem 1rem; color: var(--app-navbar-color-light); }
+html[data-bs-theme="dark"] .navbar-nav .nav-link { color: var(--app-navbar-color-dark); }
+.navbar-nav .nav-link:hover { color: var(--app-navbar-hover-color-light); }
+html[data-bs-theme="dark"] .navbar-nav .nav-link:hover { color: var(--app-navbar-hover-color-dark); }
+.navbar-text { color: var(--app-navbar-color-light); }
+html[data-bs-theme="dark"] .navbar-text { color: var(--app-navbar-color-dark); }
 
 /* Menu Lateral (Offcanvas) */
-.offcanvas { /* Bootstrap já lida com data-bs-theme para offcanvas, mas podemos refinar */
-    background-color: var(--offcanvas-bg-light);
-    color: var(--offcanvas-color-light);
-}
-html[data-bs-theme="dark"] .offcanvas {
-    background-color: var(--offcanvas-bg-dark);
-    color: var(--offcanvas-color-dark);
-}
+.offcanvas { background-color: var(--app-offcanvas-bg-light); color: var(--app-offcanvas-color-light); }
+html[data-bs-theme="dark"] .offcanvas { background-color: var(--app-offcanvas-bg-dark); color: var(--app-offcanvas-color-dark); }
 .offcanvas-start { width: 280px; }
-.offcanvas-header { border-bottom: 1px solid var(--card-border-color-light); } /* Usando var de borda de card */
-html[data-bs-theme="dark"] .offcanvas-header { border-bottom: 1px solid var(--card-border-color-dark); }
+.offcanvas-header { border-bottom: 1px solid var(--app-card-border-color-light); }
+html[data-bs-theme="dark"] .offcanvas-header { border-bottom: 1px solid var(--app-card-border-color-dark); }
+.offcanvas-title { color: var(--app-emphasis-color-light); font-weight: 600; }
+html[data-bs-theme="dark"] .offcanvas-title { color: var(--app-emphasis-color-dark); }
 
-.offcanvas-title { color: var(--bs-body-color-light); } /* Cor do título do offcanvas */
-html[data-bs-theme="dark"] .offcanvas-title { color: var(--bs-body-color-dark); }
-
-.offcanvas-body .nav-link {
-    color: var(--offcanvas-color-light); /* Cor dos links no offcanvas */
-    padding: 0.75rem 1rem;
-    border-radius: 0.25rem;
-    margin-bottom: 0.25rem;
-}
-html[data-bs-theme="dark"] .offcanvas-body .nav-link {
-    color: var(--offcanvas-color-dark);
-}
-.offcanvas-body .nav-link:hover,
-.offcanvas-body .nav-link.active {
-    background-color: var(--offcanvas-link-hover-bg-light);
-    color: var(--offcanvas-link-hover-color-light);
-}
-html[data-bs-theme="dark"] .offcanvas-body .nav-link:hover,
-html[data-bs-theme="dark"] .offcanvas-body .nav-link.active {
-    background-color: var(--offcanvas-link-hover-bg-dark);
-    color: var(--offcanvas-link-hover-color-dark);
-}
-.offcanvas-body .nav-link .bi { /* Seu estilo */
-    margin-right: 0.75rem;
-    font-size: 1.1rem;
-    vertical-align: text-bottom;
-}
-/* Ajuste para o dropdown do usuário no offcanvas (Bootstrap pode precisar de ajuda) */
-html[data-bs-theme="dark"] .offcanvas-body .dropdown-menu {
-    background-color: #343a40; /* Fundo escuro para dropdown no tema escuro */
-    border-color: var(--card-border-color-dark);
-}
-html[data-bs-theme="dark"] .offcanvas-body .dropdown-item {
-    color: #dee2e6; /* Texto claro para itens do dropdown */
-}
-html[data-bs-theme="dark"] .offcanvas-body .dropdown-item:hover {
-    background-color: #495057; /* Fundo de hover para itens do dropdown */
-    color: #ffffff;
-}
-html[data-bs-theme="dark"] .offcanvas-body .dropdown-divider {
-    border-top-color: var(--card-border-color-dark);
-}
+.offcanvas-body .nav-link { color: var(--app-offcanvas-color-light); padding: 0.75rem 1rem; border-radius: 0.25rem; margin-bottom: 0.25rem; }
+html[data-bs-theme="dark"] .offcanvas-body .nav-link { color: var(--app-offcanvas-color-dark); }
+.offcanvas-body .nav-link:hover, .offcanvas-body .nav-link.active { background-color: var(--app-offcanvas-link-hover-bg-light); color: var(--app-offcanvas-link-hover-color-light); }
+html[data-bs-theme="dark"] .offcanvas-body .nav-link:hover, html[data-bs-theme="dark"] .offcanvas-body .nav-link.active { background-color: var(--app-offcanvas-link-hover-bg-dark); color: var(--app-offcanvas-link-hover-color-dark); }
+.offcanvas-body .nav-link .bi { margin-right: 0.75rem; font-size: 1.1rem; vertical-align: text-bottom; }
+.offcanvas-body hr { border-top-color: var(--app-card-border-color-light); }
+html[data-bs-theme="dark"] .offcanvas-body hr { border-top-color: var(--app-card-border-color-dark); }
+/* Dropdown do usuário no offcanvas */
+.offcanvas-body .dropdown-menu { background-color: var(--app-card-bg-light); border-color: var(--app-card-border-color-light); }
+html[data-bs-theme="dark"] .offcanvas-body .dropdown-menu { background-color: #343a40; border-color: var(--app-card-border-color-dark); } /* Fundo mais escuro para o menu dropdown */
+.offcanvas-body .dropdown-item { color: var(--app-body-color-light); }
+html[data-bs-theme="dark"] .offcanvas-body .dropdown-item { color: #dee2e6; }
+.offcanvas-body .dropdown-item:hover { background-color: var(--app-offcanvas-link-hover-bg-light); color: var(--app-offcanvas-link-hover-color-light); }
+html[data-bs-theme="dark"] .offcanvas-body .dropdown-item:hover { background-color: #495057; color: #ffffff; }
+html[data-bs-theme="dark"] .offcanvas-body .dropdown-divider { border-top-color: var(--app-card-border-color-dark); }
+.offcanvas-body .dropdown-toggle strong { color: var(--app-body-color-light); } /* Para o nome do usuário no toggle do dropdown */
+html[data-bs-theme="dark"] .offcanvas-body .dropdown-toggle strong { color: var(--app-body-color-dark); }
 
 
 /* Cards */
-.card { /* Seus estilos de sombra e borda */
-    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075); /* Sua sombra original */
     margin-bottom: 1.5rem;
-    border: 1px solid var(--card-border-color-light);
-    background-color: var(--card-bg-light);
+    border: 1px solid var(--app-card-border-color-light);
+    background-color: var(--app-card-bg-light);
 }
 html[data-bs-theme="dark"] .card {
-    border-color: var(--card-border-color-dark);
-    background-color: var(--card-bg-dark);
+    border-color: var(--app-card-border-color-dark);
+    background-color: var(--app-card-bg-dark);
 }
 .card-header {
-    font-weight: 600; /* Seu estilo */
-    background-color: var(--card-header-bg-light);
-    color: var(--card-header-color-light);
-    border-bottom: 1px solid var(--card-border-color-light);
+    font-weight: 600;
+    background-color: var(--app-card-header-bg-light);
+    color: var(--app-card-header-color-light);
+    border-bottom: 1px solid var(--app-card-border-color-light);
 }
 html[data-bs-theme="dark"] .card-header {
-    background-color: var(--card-header-bg-dark);
-    color: var(--card-header-color-dark);
-    border-bottom: 1px solid var(--card-border-color-dark);
+    background-color: var(--app-card-header-bg-dark);
+    color: var(--app-card-header-color-dark);
+    border-bottom: 1px solid var(--app-card-border-color-dark);
 }
-/* Para .card-header.bg-primary (usado nos Ações Rápidas, Estatísticas) */
-.card-header.bg-primary {
-    background-color: var(--navbar-bg-light) !important; /* Reutilizando var da navbar light (azul) */
-    color: var(--navbar-brand-color-light) !important;   /* Reutilizando var da navbar light (branco) */
-    border-bottom: 1px solid var(--navbar-bg-light);
+.card-header.bg-primary { /* Para cabeçalhos de card que usam .bg-primary */
+    background-color: var(--app-navbar-bg-light) !important; /* Reutilizando azul da navbar light */
+    color: var(--app-navbar-brand-color-light) !important;
+    border-bottom: 1px solid var(--app-navbar-bg-light);
 }
 html[data-bs-theme="dark"] .card-header.bg-primary {
-    background-color: var(--navbar-bg-dark) !important; /* Reutilizando var da navbar dark */
-    color: var(--navbar-brand-color-dark) !important;   /* Reutilizando var da navbar dark */
-    border-bottom: 1px solid var(--navbar-bg-dark);
+    background-color: var(--app-navbar-bg-dark) !important; /* Reutilizando cor da navbar dark */
+    color: var(--app-navbar-brand-color-dark) !important;
+    border-bottom: 1px solid var(--app-navbar-bg-dark);
 }
 
 
 /* Tabelas */
-.table th { font-weight: 600; } /* Seu estilo */
-.table thead th { /* Seu estilo de cabeçalho de tabela sticky */
-    position: sticky;
-    top: 0;
-    background-color: var(--table-header-bg-light);
-    color: var(--table-header-color-light);
-    z-index: 10;
-}
-html[data-bs-theme="dark"] .table { /* Para que a tabela e o texto dentro dela fiquem claros no modo escuro */
-    color: var(--bs-body-color-dark);
+.table { color: var(--app-body-color-light); } /* Cor do texto da tabela */
+html[data-bs-theme="dark"] .table { color: var(--app-body-color-dark); }
+.table th { font-weight: 600; }
+.table thead th {
+    position: sticky; top: 0; z-index: 10; /* Seus estilos */
+    background-color: var(--app-table-header-bg-light);
+    color: var(--app-table-header-color-light);
+    border-bottom-width: 2px; /* Adiciona uma borda mais forte no header */
+    border-color: var(--app-card-border-color-light);
 }
 html[data-bs-theme="dark"] .table thead th {
-    background-color: var(--table-header-bg-dark);
-    color: var(--table-header-color-dark);
+    background-color: var(--app-table-header-bg-dark);
+    color: var(--app-table-header-color-dark);
+    border-color: var(--app-card-border-color-dark);
 }
-.table-hover tbody tr:hover { background-color: rgba(0, 0, 0, 0.02); } /* Seu estilo */
-html[data-bs-theme="dark"] .table-hover tbody tr:hover {
-    background-color: rgba(255, 255, 255, 0.05); /* Hover mais claro no tema escuro */
-}
-/* Adaptações para table-striped no modo escuro */
-html[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * {
-    --bs-table-accent-bg: rgba(255, 255, 255, 0.03); /* Um pouco mais claro para zebrado */
-    color: var(--bs-body-color-dark);
-}
-html[data-bs-theme="dark"] .table-borderless td, 
-html[data-bs-theme="dark"] .table-borderless th {
-    border: none;
-}
+.table-hover tbody tr:hover { background-color: var(--app-table-hover-bg-light); }
+html[data-bs-theme="dark"] .table-hover tbody tr:hover { background-color: var(--app-table-hover-bg-dark); }
+.table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: var(--app-table-accent-bg-light); color: var(--app-body-color-light); }
+html[data-bs-theme="dark"] .table-striped > tbody > tr:nth-of-type(odd) > * { --bs-table-accent-bg: var(--app-table-accent-bg-dark); color: var(--app-body-color-dark); }
+.table-borderless td, .table-borderless th { border: none; padding: 0.5rem; } /* Seu estilo */
 
 
 /* Badges */
-.badge { /* Seu estilo */
-    font-weight: 500;
-    padding: 0.35em 0.65em;
-    font-size: 0.85em;
+.badge { font-weight: 500; padding: 0.35em 0.65em; font-size: 0.85em; } /* Seu estilo */
+/* Bootstrap lida bem com os .bg-* para badges com data-bs-theme, mas podemos refinar se necessário */
+html[data-bs-theme="dark"] .badge.bg-warning { /* Exemplo para warning no dark */
+    color: #000 !important; /* Mantém texto escuro para contraste com amarelo */
 }
-/* Cores semânticas de badges - podem precisar de ajuste de contraste no modo escuro se o texto for branco */
-/* .badge.bg-success { ... } - Bootstrap deve lidar bem se data-bs-theme estiver no HTML */
-/* Se precisar, adicione overrides específicos para badges no tema escuro */
+html[data-bs-theme="dark"] .badge.bg-light { /* Badge .bg-light no tema escuro */
+    background-color: #495057 !important;
+    color: #fff !important;
+}
 
 
 /* Formulários */
-.form-control, .form-select { /* Estilo base para formulários */
-    background-color: var(--card-bg-light); /* Usa fundo de card */
-    color: var(--bs-body-color-light);
-    border: 1px solid var(--card-border-color-light);
+.form-control, .form-select {
+    background-color: var(--app-form-control-bg-light);
+    color: var(--app-form-control-color-light);
+    border: 1px solid var(--app-form-control-border-light);
 }
 html[data-bs-theme="dark"] .form-control, 
 html[data-bs-theme="dark"] .form-select {
-    background-color: var(--card-bg-dark); /* Fundo de input mais escuro */
-    color: var(--bs-body-color-dark);
-    border-color: var(--card-border-color-dark);
+    background-color: var(--app-form-control-bg-dark);
+    color: var(--app-form-control-color-dark); /* TEXTO DENTRO DOS INPUTS */
+    border-color: var(--app-form-control-border-dark);
 }
-html[data-bs-theme="dark"] .form-control::placeholder { color: #6c757d; }
+html[data-bs-theme="dark"] .form-control::placeholder { color: var(--app-muted-color-dark); }
 html[data-bs-theme="dark"] .form-select { /* Ícone do select no tema escuro */
-    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23dee2e6' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='#{encodecolor(var(--app-form-control-color-dark))}' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m2 5 6 6 6-6'/%3e%3c/svg%3e");
 }
-.form-control:focus, .form-select:focus { /* Seu estilo de foco */
-    border-color: var(--form-control-focus-border-light);
-    box-shadow: 0 0 0 0.25rem var(--form-control-focus-shadow-light);
+.form-control:focus, .form-select:focus {
+    border-color: var(--app-form-control-focus-border-light);
+    box-shadow: 0 0 0 0.25rem var(--app-form-control-focus-shadow-light);
 }
 html[data-bs-theme="dark"] .form-control:focus, 
 html[data-bs-theme="dark"] .form-select:focus {
-    border-color: var(--form-control-focus-border-dark);
-    box-shadow: 0 0 0 0.25rem var(--form-control-focus-shadow-dark);
-    background-color: var(--card-bg-dark); /* Mantém o fundo ao focar */
-    color: var(--bs-body-color-dark);
+    border-color: var(--app-form-control-focus-border-dark);
+    box-shadow: 0 0 0 0.25rem var(--app-form-control-focus-shadow-dark);
+    background-color: var(--app-form-control-bg-dark); /* Mantém fundo ao focar */
+    color: var(--app-form-control-color-dark); /* Mantém texto claro ao focar */
+}
+/* Para os blocos de descrição/observações que usam .bg-light no HTML */
+.border.p-3.bg-light.rounded { /* Aplicado em detalhe_registro_direto.html */
+    background-color: var(--app-fundo-elemento-claro); /* Usa um fundo claro definido nas vars */
+    color: var(--app-body-color-light);
+}
+html[data-bs-theme="dark"] .border.p-3.bg-light.rounded {
+    background-color: var(--app-form-control-bg-dark) !important; /* Usa o mesmo fundo dos inputs */
+    color: var(--app-form-control-color-dark) !important; /* Usa a mesma cor de texto dos inputs */
+    border-color: var(--app-form-control-border-dark) !important;
 }
 
 
-/* Botões (Bootstrap deve lidar bem com botões padrão no data-bs-theme, mas podemos refinar) */
-.btn { font-weight: 500; padding: 0.5rem 1rem; } /* Seu estilo */
-.btn i, .btn .bi { margin-right: 0.5rem; vertical-align: text-bottom;} /* Seu estilo */
-/* .btn-primary, .btn-outline-primary, etc. - Bootstrap 5.3+ adapta bem com data-bs-theme. */
-/* Se estiver usando Bootstrap < 5.3 ou quiser mais controle: */
-/*
-html[data-bs-theme="dark"] .btn-primary { ... }
-html[data-bs-theme="dark"] .btn-outline-primary { ... }
-*/
+/* Botões */
+.btn { font-weight: 500; padding: 0.5rem 1rem; }
+.btn i, .btn .bi { margin-right: 0.5rem; vertical-align: text-bottom; }
+/* O Bootstrap 5.3+ com data-bs-theme deve adaptar bem os botões .btn-primary, .btn-success etc. */
+/* Se estiver usando uma versão anterior ou precisar de mais controle: */
+html[data-bs-theme="dark"] .btn-primary { background-color: var(--bs-primary); border-color: var(--bs-primary); /* Reutiliza as cores do Bootstrap */ }
+html[data-bs-theme="dark"] .btn-primary:hover { filter: brightness(90%); }
+html[data-bs-theme="dark"] .btn-outline-primary { color: var(--bs-primary); border-color: var(--bs-primary); }
+html[data-bs-theme="dark"] .btn-outline-primary:hover { background-color: var(--bs-primary); color: var(--app-texto-claro); }
+/* Para garantir contraste em botões específicos no modo dark */
+html[data-bs-theme="dark"] .btn-success { color: #fff !important; }
+html[data-bs-theme="dark"] .btn-danger { color: #fff !important; }
+html[data-bs-theme="dark"] .btn-warning { color: #000 !important; } /* Amarelo geralmente precisa de texto escuro */
+html[data-bs-theme="dark"] .btn-info { color: #000 !important; }  /* Ciano claro também */
 
 
 /* Links Gerais */
-a {
-    color: var(--link-color-light);
-    text-decoration: none;
-}
-html[data-bs-theme="dark"] a {
-    color: var(--link-color-dark);
-}
-a:hover {
-    color: var(--link-hover-color-light);
-    text-decoration: underline;
-}
-html[data-bs-theme="dark"] a:hover {
-    color: var(--link-hover-color-dark);
-}
+a { color: var(--app-link-color-light); text-decoration: none; }
+html[data-bs-theme="dark"] a { color: var(--app-link-color-dark); }
+a:hover { color: var(--app-link-hover-color-light); text-decoration: underline; }
+html[data-bs-theme="dark"] a:hover { color: var(--app-link-hover-color-dark); }
 
 
 /* Títulos */
-h1, h2, h3, h4, h5, h6 {
-    color: var(--bs-emphasis-color-light); /* Usa a cor de ênfase do tema */
-    font-weight: 600;
-}
-html[data-bs-theme="dark"] h1, 
-html[data-bs-theme="dark"] h2, 
-html[data-bs-theme="dark"] h3, 
-html[data-bs-theme="dark"] h4, 
-html[data-bs-theme="dark"] h5, 
-html[data-bs-theme="dark"] h6 {
-    color: var(--bs-emphasis-color-dark);
+h1, h2, h3, h4, h5, h6 { color: var(--app-emphasis-color-light); font-weight: 600; }
+html[data-bs-theme="dark"] h1, html[data-bs-theme="dark"] h2, html[data-bs-theme="dark"] h3, 
+html[data-bs-theme="dark"] h4, html[data-bs-theme="dark"] h5, html[data-bs-theme="dark"] h6 {
+    color: var(--app-emphasis-color-dark);
 }
 
 
-/* Mantendo seus outros estilos que não são diretamente sobre cores primárias */
-.card-header-tabs .nav-link { color: #495057; font-weight: 500; }
-html[data-bs-theme="dark"] .card-header-tabs .nav-link { color: var(--bs-body-color-dark); }
+/* Seus estilos específicos mantidos */
+.card-header-tabs .nav-link { color: #495057; font-weight: 500; } /* Pode precisar de ajuste no tema escuro */
+html[data-bs-theme="dark"] .card-header-tabs .nav-link { color: var(--app-muted-color-dark); }
+.card-header-tabs .nav-link.active { color: var(--app-link-color-light); background-color: transparent; border-bottom: 3px solid var(--app-link-color-light); }
+html[data-bs-theme="dark"] .card-header-tabs .nav-link.active { color: var(--app-link-color-dark); border-bottom-color: var(--app-link-color-dark); }
 
-.card-header-tabs .nav-link.active {
-    color: var(--link-color-light);
-    background-color: transparent;
-    border-bottom: 3px solid var(--link-color-light);
-}
-html[data-bs-theme="dark"] .card-header-tabs .nav-link.active {
-    color: var(--link-color-dark);
-    border-bottom-color: var(--link-color-dark);
-}
+.tab-content { padding-top: 1rem; }
+.list-group-item h6 { font-weight: 500; }
+.list-group-item { border-left: none; border-right: none; background-color: transparent; } /* Garante fundo transparente para herdar do card */
+html[data-bs-theme="dark"] .list-group-item { border-color: var(--app-card-border-color-dark); }
+.list-group-item:first-child { border-top: none; }
+.list-group-item:last-child { border-bottom: none; }
 
-/* ... (resto dos seus estilos como .tab-content, .list-group-item, responsividade, etc. podem ser mantidos como estão ou ajustados se necessário para o tema escuro) ... */
+/* Seus .bg-light e .text-muted já são tratados pelas variáveis globais ou overrides específicos */
+/* Ex: html[data-bs-theme="dark"] .bg-light { ... } */
+/* Ex: html[data-bs-theme="dark"] .text-muted { ... } */
 
-/* Assegure-se que as cores de texto dentro de elementos com .bg-light ou .text-muted sejam legíveis em ambos os temas */
-html[data-bs-theme="dark"] .bg-light { /* .bg-light no tema escuro deve ser um cinza escuro */
-    background-color: #2b3035 !important; 
-    color: #dee2e6 !important; /* Texto claro sobre esse fundo escuro */
-}
-html[data-bs-theme="dark"] .text-muted {
-    color: #adb5bd !important; /* Um cinza mais claro para texto 'muted' no tema escuro */
-}
+.container { padding-top: 1.5rem; padding-bottom: 2rem; } /* Seu estilo */
 
-/* Ajustes para o container principal (mantendo o seu) */
-.container {
-    padding-top: 1.5rem;
-    padding-bottom: 2rem;
+@media (max-width: 991.98px) { /* Seus estilos responsivos */
+    .navbar-collapse { padding-top: 1rem; }
+    .navbar-nav .nav-item { margin-bottom: 0.5rem; }
+    .navbar-text { display: block; padding: 0.5rem 1rem; }
 }
+@media (max-width: 768px) { .table-responsive { font-size: 0.875rem; } }
+@media (max-width: 576px) { .nav-tabs .nav-item { width: 100%; } }
+
+.participante-list li { padding: 3px 0; border-bottom: 1px solid #eee; }
+html[data-bs-theme="dark"] .participante-list li { border-bottom-color: var(--app-card-border-color-dark); }
+.participante-list li:last-child { border-bottom: none; }
+
+.btn-close { /* Para o botão de fechar alerts e modals */
+    filter: invert(0); /* Padrão para tema claro */
+}
+html[data-bs-theme="dark"] .btn-close {
+    filter: invert(1) grayscale(100%) brightness(200%); /* Faz o 'x' ficar branco no tema escuro */
+}
+/* Cartões de estatísticas no dashboard */
+.card-body h3 { font-size: 2rem; margin-bottom: 0.5rem; } /* Seu estilo, cor virá de H3 geral */
