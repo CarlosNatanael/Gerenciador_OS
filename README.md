@@ -1,8 +1,8 @@
-# Sistema de Gerenciamento de Ordens de Serviço (OS) - Premix
+# Sistema de Gerenciamento de Ordens de Serviço (OS)
 
 ## 🧩 Visão Geral
 
-O Sistema de Gerenciamento de OS Web é uma aplicação desenvolvida em Flask para a gestão completa de Ordens de Serviço (OS) e registros de manutenção, com foco na organização, agilidade, rastreabilidade das operações e personalização para as necessidades da Premix Nutrição Animal. A ferramenta facilita o processo desde a solicitação ou registro de um serviço até sua conclusão e análise, envolvendo diferentes perfis de usuários com permissões específicas.
+O Sistema de Gerenciamento de OS Web é uma aplicação desenvolvida em Flask para a gestão completa de Ordens de Serviço (OS) e registros de manutenção, com foco na organização, agilidade, rastreabilidade das operações e personalização para as necessidades das empresas de indústria. A ferramenta facilita o processo desde a solicitação ou registro de um serviço até sua conclusão e análise, envolvendo diferentes perfis de usuários com permissões específicas.
 
 ---
 
