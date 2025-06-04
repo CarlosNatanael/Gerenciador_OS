@@ -47,21 +47,6 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-6" id="campo_especialidade" style="display: '{% if submitted_data and submitted_data.tipo == 'manutencao' %}block{% else %}none{% endif %}';">
-                        <label for="especialidade" class="form-label">Especialidade (Técnico) <span class="text-danger">*</span></label>
-                        <select class="form-select" id="especialidade" name="especialidade" 
-                                {% if submitted_data and submitted_data.tipo == 'manutencao' %}required{% endif %}>
-                            <option value="">Selecione uma especialidade...</option>
-                            <option value="eletricista" 
-                                    {% if submitted_data and submitted_data.especialidade == 'eletricista' %}selected{% endif %}>
-                                Eletricista
-                            </option>
-                            <option value="mecanico" 
-                                    {% if submitted_data and submitted_data.especialidade == 'mecanico' %}selected{% endif %}>
-                                Mecânico
-                            </option>
-                        </select>
-                    </div>
                 </div>
                 
                 <div class="d-grid gap-2 d-md-flex justify-content-md-end">

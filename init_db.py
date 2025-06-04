@@ -9,11 +9,12 @@ def criar_banco_dados():
 
         # Configurações do banco
         cursor.execute("PRAGMA foreign_keys = ON")
-        cursor.execute("PRAGMA journal_mode = WAL") # Mantido
-        cursor.execute("PRAGMA busy_timeout = 5000") # Mantido
+        cursor.execute("PRAGMA journal_mode = WAL")
+        cursor.execute("PRAGMA busy_timeout = 5000")
 
         print("\n--- Modificando Tabela usuarios ---")
-        cursor.execute("DROP TABLE IF EXISTS usuarios") # CUIDADO: Apaga dados!
+        cursor.execute("DROP TABLE IF EXISTS usuarios")
+        print("Tabela 'usuarios' removida (se existia).")
         cursor.execute('''
         CREATE TABLE usuarios (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -22,91 +23,104 @@ def criar_banco_dados():
             tipo TEXT NOT NULL CHECK(tipo IN ('solicitante', 'manutencao', 'admin', 'master-admin')),
             nome TEXT NOT NULL,
             email TEXT UNIQUE,
-            especialidade TEXT CHECK(especialidade IS NULL OR especialidade IN ('eletricista', 'mecanico')), -- Nova coluna
             ativo BOOLEAN DEFAULT 1,
             data_criacao TEXT DEFAULT CURRENT_TIMESTAMP
         )
         ''')
-        print("Tabela 'usuarios' recriada/verificada com sucesso.")
+        print("Tabela 'usuarios' recriada com sucesso.")
 
-        print("\n--- Modificando Tabela ordens_servico ---")
-        # Tabela de ordens de serviço
+        print("\n--- Criando Nova Tabela tecnicos ---")
+        cursor.execute("DROP TABLE IF EXISTS tecnicos")
+        cursor.execute('''
+        CREATE TABLE tecnicos (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            nome TEXT NOT NULL UNIQUE,
+            tipo_tecnico TEXT NOT NULL CHECK(tipo_tecnico IN ('eletricista', 'mecanico')),
+            ativo BOOLEAN DEFAULT 1,
+            data_criacao TEXT DEFAULT CURRENT_TIMESTAMP
+        )
+        ''')
+        print("Tabela 'tecnicos' criada com sucesso.")
+
+        print("\n--- Verificando/Criando Tabela ordens_servico ---")
+        # Se a tabela já existir e o schema estiver correto, não precisa dropar.
+        # Se precisar alterar o schema, seria melhor dropar ou usar ALTER TABLE.
+        # cursor.execute("DROP TABLE IF EXISTS ordens_servico") # Descomente se precisar recriar do zero
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS ordens_servico (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            data TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Data de abertura da OS
+            data TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
             equipamento TEXT NOT NULL,
             problema TEXT NOT NULL,
             prioridade TEXT NOT NULL CHECK(prioridade IN ('baixa', 'normal', 'alta', 'urgente')),
             status TEXT NOT NULL CHECK(status IN ('Aberta', 'Agendada', 'Em andamento', 'Pausada', 'Concluída', 'Cancelada')) DEFAULT 'Aberta',
             solucao TEXT,
-            tempo_reparo REAL, -- Em minutos ou horas, a ser calculado
-            inicio TEXT,      -- Data/Hora de início do trabalho (pode ser manual ou automático)
-            fim TEXT,         -- Data/Hora de conclusão do trabalho (AGORA SERÁ MANUAL)
+            tempo_reparo REAL,
+            inicio TEXT,
+            fim TEXT,
             solicitante_id INTEGER NOT NULL,
-            tecnico_id INTEGER, -- Pode representar o técnico principal ou o que iniciou
+            tecnico_id INTEGER, 
             local TEXT,
             setor TEXT,
             data_agendamento TEXT,
             horario_agendamento TEXT,
-            FOREIGN KEY (solicitante_id) REFERENCES usuarios (id),
-            FOREIGN KEY (tecnico_id) REFERENCES usuarios (id)
+            FOREIGN KEY (solicitante_id) REFERENCES usuarios (id) ON DELETE RESTRICT, -- Impede deleção de usuário com OS
+            FOREIGN KEY (tecnico_id) REFERENCES usuarios (id) ON DELETE SET NULL -- Seta NULL se o usuário técnico for deletado
         )
         ''')
         print("Tabela 'ordens_servico' verificada/criada.")
 
-        # Tabela de participantes da OS (existente e adequada)
+        print("\n--- Recriando Tabela participantes_os ---")
+        cursor.execute("DROP TABLE IF EXISTS participantes_os")
         cursor.execute('''
-        CREATE TABLE IF NOT EXISTS participantes_os (
+        CREATE TABLE participantes_os (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             os_id INTEGER NOT NULL,
-            tecnico_id INTEGER NOT NULL, -- ID do usuário técnico que participou
+            tecnico_ref_id INTEGER NOT NULL, 
             data_inclusao TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (os_id) REFERENCES ordens_servico(id) ON DELETE CASCADE,
-            FOREIGN KEY (tecnico_id) REFERENCES usuarios(id)
+            FOREIGN KEY (tecnico_ref_id) REFERENCES tecnicos(id) ON DELETE RESTRICT -- Impede deleção de técnico com OS
         )
         ''')
-        print("Tabela 'participantes_os' verificada/criada.")
+        print("Tabela 'participantes_os' recriada com sucesso.")
 
-
-        print("\n--- Criando Nova Tabela registros_manutencao_direta ---")
-        # Nova tabela para Registros de Manutenção Direta
-        cursor.execute("DROP TABLE IF EXISTS participantes_registro_direto") # Se for recriar
-        cursor.execute("DROP TABLE IF EXISTS registros_manutencao_direta") # Se for recriar
+        print("\n--- Verificando/Criando Tabela registros_manutencao_direta ---")
+        # cursor.execute("DROP TABLE IF EXISTS registros_manutencao_direta") # Descomente se precisar recriar
         cursor.execute('''
-        CREATE TABLE registros_manutencao_direta (
+        CREATE TABLE IF NOT EXISTS registros_manutencao_direta (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            data_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, -- Quando o registro foi criado no sistema
-            data_execucao TEXT NOT NULL,               -- Data e Hora que o serviço foi executado (manual)
-            duracao_minutos INTEGER,                   -- Duração da manutenção em minutos (manual)
+            data_registro TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            data_execucao TEXT NOT NULL,
+            duracao_minutos INTEGER,
             equipamento_afetado TEXT,
             descricao_servico TEXT NOT NULL,
             observacoes TEXT,
-            criado_por_id INTEGER NOT NULL,             -- ID do usuário de manutenção que criou
+            criado_por_id INTEGER NOT NULL, 
             status TEXT NOT NULL CHECK(status IN ('Pendente Aprovacao', 'Concluido', 'Cancelado')) DEFAULT 'Pendente Aprovacao',
-            data_conclusao_admin TEXT,                 -- Data que o admin aprovou/concluiu
-            concluido_por_admin_id INTEGER,            -- ID do admin que aprovou/concluiu
-            FOREIGN KEY (criado_por_id) REFERENCES usuarios (id),
-            FOREIGN KEY (concluido_por_admin_id) REFERENCES usuarios (id)
+            data_conclusao_admin TEXT,
+            concluido_por_admin_id INTEGER,
+            FOREIGN KEY (criado_por_id) REFERENCES usuarios (id) ON DELETE RESTRICT,
+            FOREIGN KEY (concluido_por_admin_id) REFERENCES usuarios (id) ON DELETE SET NULL
         )
         ''')
-        print("Tabela 'registros_manutencao_direta' criada com sucesso.")
+        print("Tabela 'registros_manutencao_direta' verificada/criada.")
 
-        # Tabela para participantes dos Registros de Manutenção Direta (opcional, mas recomendado)
+        print("\n--- Recriando Tabela participantes_registro_direto ---")
+        cursor.execute("DROP TABLE IF EXISTS participantes_registro_direto")
         cursor.execute('''
         CREATE TABLE participantes_registro_direto (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             registro_id INTEGER NOT NULL,
-            tecnico_id INTEGER NOT NULL, -- ID do usuário técnico que participou
+            tecnico_ref_id INTEGER NOT NULL, 
             data_inclusao TEXT DEFAULT CURRENT_TIMESTAMP,
             FOREIGN KEY (registro_id) REFERENCES registros_manutencao_direta(id) ON DELETE CASCADE,
-            FOREIGN KEY (tecnico_id) REFERENCES usuarios(id)
+            FOREIGN KEY (tecnico_ref_id) REFERENCES tecnicos(id) ON DELETE RESTRICT
         )
         ''')
-        print("Tabela 'participantes_registro_direto' criada com sucesso.")
+        print("Tabela 'participantes_registro_direto' recriada com sucesso.")
 
-
-        # Tabela de histórico da OS (existente)
+        print("\n--- Verificando/Criando Tabela historico_os ---")
+        # cursor.execute("DROP TABLE IF EXISTS historico_os") # Descomente se precisar recriar
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS historico_os (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -119,12 +133,13 @@ def criar_banco_dados():
             valor_anterior TEXT,
             novo_valor TEXT,
             FOREIGN KEY (os_id) REFERENCES ordens_servico (id) ON DELETE CASCADE,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL -- Seta NULL se usuário for deletado
         )
         ''')
         print("Tabela 'historico_os' verificada/criada.")
 
-        # Tabela de locais (existente da alteração anterior)
+        print("\n--- Verificando/Criando Tabela locais ---")
+        # cursor.execute("DROP TABLE IF EXISTS locais") # Descomente se precisar recriar
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS locais (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -136,7 +151,8 @@ def criar_banco_dados():
         ''')
         print("Tabela 'locais' verificada/criada.")
         
-        # Tabela de anexos da OS (existente)
+        print("\n--- Verificando/Criando Tabela anexos_os ---")
+        # cursor.execute("DROP TABLE IF EXISTS anexos_os") # Descomente se precisar recriar
         cursor.execute('''
         CREATE TABLE IF NOT EXISTS anexos_os (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -148,37 +164,37 @@ def criar_banco_dados():
             data_upload TEXT DEFAULT CURRENT_TIMESTAMP,
             usuario_id INTEGER NOT NULL,
             FOREIGN KEY (os_id) REFERENCES ordens_servico (id) ON DELETE CASCADE,
-            FOREIGN KEY (usuario_id) REFERENCES usuarios (id)
+            FOREIGN KEY (usuario_id) REFERENCES usuarios (id) ON DELETE SET NULL
         )
         ''')
         print("Tabela 'anexos_os' verificada/criada.")
 
+        print("\n--- Criando usuários padrão ---")
+        cursor.execute("INSERT INTO usuarios (usuario, senha, tipo, nome, email, ativo) VALUES (?, ?, ?, ?, ?, ?)",
+                       ('masteradmin', generate_password_hash('master123'), 'master-admin', 'Master Administrador', 'master@empresa.com', 1))
+        print("Usuário 'masteradmin' criado.")
 
-        # Criação do usuário master-admin inicial se não existir (ou se a tabela foi recriada)
-        # E um usuário admin padrão
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE tipo = 'master-admin'")
-        if cursor.fetchone()[0] == 0:
-            cursor.execute('''
-            INSERT INTO usuarios (usuario, senha, tipo, nome, email, ativo)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', ('masteradmin', generate_password_hash('master123'), 'master-admin', 'Master Administrador', 'master@empresa.com', 1))
-            print("Usuário 'masteradmin' criado.")
+        cursor.execute("INSERT INTO usuarios (usuario, senha, tipo, nome, email, ativo) VALUES (?, ?, ?, ?, ?, ?)",
+                       ('admin', generate_password_hash('admin123'), 'admin', 'Administrador Padrão', 'admin@empresa.com', 1))
+        print("Usuário 'admin' padrão criado.")
+        
+        cursor.execute("INSERT INTO usuarios (usuario, senha, tipo, nome, email, ativo) VALUES (?, ?, ?, ?, ?, ?)",
+                       ('manutencao', generate_password_hash('manutencao123'), 'manutencao', 'Equipe de Manutenção', 'manutencao@empresa.com', 1))
+        print("Usuário genérico 'manutencao' criado com senha 'manutencao123'.")
 
-        cursor.execute("SELECT COUNT(*) FROM usuarios WHERE usuario = 'admin'")
-        if cursor.fetchone()[0] == 0: # Se o admin padrão foi apagado ao dropar a tabela
-             cursor.execute('''
-            INSERT INTO usuarios (usuario, senha, tipo, nome, email, ativo)
-            VALUES (?, ?, ?, ?, ?, ?)
-            ''', ('admin', generate_password_hash('admin123'), 'admin', 'Administrador Padrão', 'admin@empresa.com', 1))
-        print("Usuário 'admin' padrão recriado.")
+        # Adicionar técnicos de exemplo
+        tecnicos_exemplo = [
+            ('Marcela', 'eletricista'),
+            ('Luiz', 'mecanico'),
+            ('Marcio', 'eletricista')
+        ]
+        # Usar INSERT OR IGNORE para evitar erro se os técnicos já existirem
+        cursor.executemany("INSERT OR IGNORE INTO tecnicos (nome, tipo_tecnico) VALUES (?, ?)", tecnicos_exemplo)
+        print(f"Técnicos de exemplo adicionados/ignorados na tabela 'tecnicos'.")
 
         conn.commit()
-        print("\nBanco de dados verificado/atualizado com sucesso!")
-        print("Lembre-se: Se a tabela 'usuarios' foi recriada, todos os usuários anteriores foram perdidos.")
-        print("Usuários iniciais:")
-        print("- Login: masteradmin / Senha: master123")
-        print("- Login: admin / Senha: admin123 (se recriado)")
-
+        print("\nBanco de dados atualizado com sucesso!")
+        print("ATENÇÃO: Se tabelas foram RECRIADAS, dados antigos nelas foram perdidos.")
 
     except sqlite3.Error as e:
         print(f"\nErro ao interagir com o banco de dados: {str(e)}\n")
@@ -189,11 +205,12 @@ def criar_banco_dados():
             conn.close()
 
 if __name__ == "__main__":
-    # ATENÇÃO: Executar este script irá APAGAR e RE CRIAR a tabela USUARIOS se ela for dropada.
     print("Este script irá modificar o schema do banco de dados.")
-    print("A tabela 'usuarios' será RECRIADA, o que APAGARÁ todos os usuários existentes.")
-    confirmacao = input("Deseja continuar? (s/N): ")
+    print("AS SEGUINTES TABELAS SERÃO RECRIADAS (DROP e CREATE) SE JÁ EXISTIREM: usuarios, tecnicos, participantes_os, participantes_registro_direto.")
+    print("TODOS OS DADOS NESSAS TABELAS SERÃO PERDIDOS.")
+    print("Outras tabelas (ordens_servico, registros_manutencao_direta, historico_os, locais, anexos_os) serão criadas com 'IF NOT EXISTS'.")
+    confirmacao = input("Deseja continuar com a operação? (s/N): ")
     if confirmacao.lower() == 's':
         criar_banco_dados()
     else:
-        print("Operação cancelada.")
+        print("Operação cancelada pelo usuário.")
