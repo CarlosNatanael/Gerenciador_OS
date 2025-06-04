@@ -71,6 +71,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_registros_diretos') }}">
+                            <i class="bi bi-journal-check"></i>Ver Registros Manutenção
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin_configuracoes') }}">
                              <i class="bi bi-sliders"></i>Configurações
                         </a>
@@ -80,12 +85,34 @@
                              <i class="bi bi-people-fill"></i>Gerenciar Usuários
                         </a>
                     </li>
+                {% elif session.tipo == 'master-admin' %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{{ url_for('listar_registros_diretos') }}">
-                            <i class="bi bi-clipboard-data-fill"></i>Registro de Manutenção
+                        <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                            <i class="bi bi-speedometer2"></i>Dashboard
                         </a>
                     </li>
-                {% endif %}
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('abrir_os') }}">
+                             <i class="bi bi-pencil-square"></i>Abrir OS
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_registros_diretos') }}">
+                            <i class="bi bi-journal-check"></i>Ver Registros Manutenção
+                        </a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('admin_configuracoes') }}">
+                             <i class="bi bi-sliders"></i>Configurações
+                        </a>
+                    </li>
+                     <li class="nav-item">
+                        <a class="nav-link" href="{{ url_for('listar_usuarios') }}">
+                             <i class="bi bi-people-fill"></i>Gerenciar Usuários
+                        </a>
+                    </li>
+                    {# + Links EXCLUSIVOS para master-admin, se houver #}
+                    {% endif %}
             </ul>
             
             <hr>

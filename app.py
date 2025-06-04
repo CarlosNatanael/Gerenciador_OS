@@ -49,31 +49,59 @@ def index():
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
-        usuario = request.form['usuario']
-        senha = request.form['senha']
+        usuario_form = request.form.get('usuario', '').strip()
+        senha_form = request.form.get('senha', '')
+        
+        print(f"\nDEBUG: Tentativa de login para usuário: [{usuario_form}]") # DEBUG
+
+        if not usuario_form or not senha_form:
+            flash('Usuário e senha são obrigatórios.', 'warning')
+            print("DEBUG: Login falhou - Usuário ou senha vazios.") # DEBUG
+            return render_template('login.html')
 
         conn = get_db()
         cursor = conn.cursor()
         
-        # Busca apenas o usuário
-        cursor.execute("SELECT * FROM usuarios WHERE usuario = ?", (usuario,))
-        user = cursor.fetchone()
-        conn.close()
+        print(f"DEBUG: Consultando DB por usuário: {usuario_form}") # DEBUG
+        cursor.execute("SELECT * FROM usuarios WHERE usuario = ? AND ativo = 1", (usuario_form,))
+        user_data = cursor.fetchone()
 
-        if user and check_password_hash(user['senha'], senha):  # Verifica o hash
-            session['usuario'] = user['usuario']
-            session['tipo'] = user['tipo']
-            session['user_id'] = user['id']  # Armazena o ID do usuário na sessão
+        if user_data:
+            print(f"DEBUG: Usuário encontrado no DB: ID={user_data['id']}, Nome={user_data['nome']}, Tipo={user_data['tipo']}, Ativo={user_data['ativo']}") # DEBUG
+            is_password_correct = check_password_hash(user_data['senha'], senha_form)
+            print(f"DEBUG: Verificação de senha para [{usuario_form}]: {is_password_correct}") # DEBUG
 
-            if user['tipo'] == 'solicitante':
-                return redirect(url_for('minhas_os'))
-            elif user['tipo'] == 'manutencao':
-                return redirect(url_for('manutencao_dashboard'))
-            elif user['tipo'] == 'admin':
-                return redirect(url_for('admin_dashboard'))
+            if is_password_correct:
+                session['usuario'] = user_data['usuario']
+                session['tipo'] = user_data['tipo']
+                session['user_id'] = user_data['id']
+                print(f"DEBUG: Sessão configurada: {dict(session)}") # DEBUG
+
+                if user_data['tipo'] == 'solicitante':
+                    print("DEBUG: Redirecionando para 'minhas_os' (solicitante)\n") # DEBUG
+                    return redirect(url_for('minhas_os'))
+                elif user_data['tipo'] == 'manutencao':
+                    print("DEBUG: Redirecionando para 'manutencao_dashboard' (manutencao)\n") # DEBUG
+                    return redirect(url_for('manutencao_dashboard'))
+                elif user_data['tipo'] == 'admin':
+                    print("DEBUG: Redirecionando para 'admin_dashboard' (admin)\n") # DEBUG
+                    return redirect(url_for('admin_dashboard'))
+                elif user_data['tipo'] == 'master-admin':
+                    print("DEBUG: Redirecionando para 'admin_dashboard' (master-admin)\n") # DEBUG
+                    return redirect(url_for('admin_dashboard')) 
+                else:
+                    flash('Tipo de usuário desconhecido ou não autorizado.', 'danger')
+                    print(f"DEBUG: Login falhou - Tipo de usuário desconhecido: [{user_data['tipo']}]") # DEBUG
+                    session.clear()
+                    return redirect(url_for('login'))
+            else:
+                flash('Usuário ou senha inválidos, ou usuário inativo.', 'danger')
+                print("DEBUG: Login falhou - Senha incorreta.\n") # DEBUG
         else:
-            flash('Usuário ou senha inválidos.')
-
+            flash('Usuário ou senha inválidos, ou usuário inativo.', 'danger')
+            print(f"DEBUG: Login falhou - Usuário [{usuario_form}] não encontrado ou inativo.\n") # DEBUG
+            
+    print("\nDEBUG: Renderizando página de login (login.html).\n") # DEBUG
     return render_template('login.html')
 
 # Rota logout
@@ -482,18 +510,12 @@ def agendar_os(id_os):
     if request.method == 'POST':
         data_agendamento_str = request.form.get('data_agendamento')
         horario_agendamento_str = request.form.get('horario_agendamento')
-        ids_tecnicos_participantes = request.form.getlist('tecnicos_participantes')
 
-        if not data_agendamento_str or not horario_agendamento_str or not ids_tecnicos_participantes:
-            flash('Data, horário e pelo menos um técnico participante são obrigatórios para o agendamento.', 'danger')
-            cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
-            todos_tecnicos = cursor.fetchall()
+        if not data_agendamento_str or not horario_agendamento_str:
+            flash('Data e horário são obrigatórios para o agendamento.', 'danger')
             return render_template('manutencao/agendar_os.html', 
                                    os=os_data, 
-                                   todos_tecnicos_manutencao=todos_tecnicos,
                                    request_form_data=request.form)
-
-
         try:
             cursor.execute("""
                 UPDATE ordens_servico 
@@ -504,26 +526,7 @@ def agendar_os(id_os):
                 WHERE id = ?
             """, (data_agendamento_str, horario_agendamento_str, session.get('user_id'), id_os))
             
-            cursor.execute("DELETE FROM participantes_os WHERE os_id = ?", (id_os,))
-            
-            # 2. Adicionar os novos participantes selecionados
-            for tecnico_id_str in ids_tecnicos_participantes:
-                try:
-                    tecnico_id = int(tecnico_id_str)
-                    cursor.execute("""
-                        INSERT INTO participantes_os (os_id, tecnico_id)
-                        VALUES (?, ?)
-                    """, (id_os, tecnico_id))
-                except ValueError:
-                    flash(f"ID de técnico inválido ({tecnico_id_str}) ignorado.", "warning")
-
-            # Registra no histórico
             observacao_historico = f"Agendado para {data_agendamento_str} {horario_agendamento_str}."
-            if ids_tecnicos_participantes:
-                cursor.execute("SELECT group_concat(nome) FROM usuarios WHERE id IN ({})".format(','.join('?'*len(ids_tecnicos_participantes))), ids_tecnicos_participantes)
-                nomes_participantes = cursor.fetchone()[0]
-                if nomes_participantes:
-                    observacao_historico += f" Equipe: {nomes_participantes}."
 
             cursor.execute("""
                 INSERT INTO historico_os 
@@ -541,19 +544,13 @@ def agendar_os(id_os):
         except Exception as e:
             flash(f'Erro ao agendar OS: {str(e)}', 'danger')
         
-        cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
-        todos_tecnicos = cursor.fetchall()
         return render_template('manutencao/agendar_os.html', 
                                os=os_data, 
-                               todos_tecnicos_manutencao=todos_tecnicos, # Nome da variável consistente
                                request_form_data=request.form)
 
-    cursor.execute("SELECT id, nome, especialidade FROM usuarios WHERE tipo = 'manutencao' AND ativo = 1 ORDER BY nome")
-    todos_tecnicos = cursor.fetchall()
-
     return render_template('manutencao/agendar_os.html', 
-                           os=os_data, 
-                           todos_tecnicos_manutencao=todos_tecnicos)
+                           os=os_data)
+
 @app.route('/manutencao/registros/novo', methods=['GET', 'POST'])
 @manutencao_required
 def novo_registro_direto():
@@ -668,7 +665,8 @@ def novo_registro_direto():
 # --- ADMIN ---
 @app.route('/admin')
 def admin_dashboard():
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin','master-admin']:
+        flash('Acesso não autorizado ao dashboard administrativo.','danger')
         return redirect(url_for('login'))
 
     conn = get_db()
@@ -711,7 +709,7 @@ def admin_dashboard():
 
 @app.route('/admin/os/<int:id>')
 def detalhe_os_admin(id):
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin','master-admin']:
         return redirect(url_for('login'))
 
     conn = get_db()
@@ -923,7 +921,7 @@ def detalhe_registro_direto(id_registro):
 # --- ADMIN - Configurações ---
 @app.route('/admin/configuracoes')
 def admin_configuracoes():
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin', 'master-admin']:
         flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
     return render_template('administrador/configuracoes.html')
@@ -931,7 +929,7 @@ def admin_configuracoes():
 # --- ADMIN - Gerenciamento de Locais ---
 @app.route('/admin/locais')
 def listar_locais():
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin', 'master-admin']:
         flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
@@ -944,7 +942,7 @@ def listar_locais():
 
 @app.route('/admin/locais/adicionar', methods=['GET', 'POST'])
 def adicionar_local():
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin', 'master-admin']:
         flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
@@ -984,7 +982,7 @@ def adicionar_local():
 
 @app.route('/admin/locais/editar/<int:id>', methods=['GET', 'POST'])
 def editar_local(id):
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin', 'master-admin']:
         flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
@@ -1047,7 +1045,7 @@ def editar_local(id):
 
 @app.route('/admin/locais/remover/<int:id>')
 def remover_local(id):
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin', 'master-admin']:
         flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
@@ -1071,7 +1069,8 @@ def remover_local(id):
 # --- ADMIN - Gerenciamento de Usuários ---
 @app.route('/admin/usuarios')
 def listar_usuarios():
-    if session.get('tipo') != 'admin':
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
         return redirect(url_for('login'))
 
     conn = get_db()
@@ -1162,7 +1161,6 @@ def novo_usuario():
 
 @app.route('/admin/usuarios/editar/<int:id_usuario_alvo>', methods=['GET', 'POST'])
 def editar_usuario(id_usuario_alvo):
-    # Quem está logado
     editor_tipo = session.get('tipo')
     editor_id = session.get('user_id')
 
