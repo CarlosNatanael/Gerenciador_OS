@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Administrativo{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2 class="my-4">Dashboard Administrativo</h2>
+    
+    <div class="row">
+        <!-- Cartão de Estatísticas -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Estatísticas de OS</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.total }}</h3>
+                                    <p class="text-muted mb-0">Total de OS</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ "%.1f"|format(stats.media) if stats.media is not none else "0.0" }}</h3>
+                                    <p class="text-muted mb-0">Média Tempo (min)</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.abertas }}</h3>
+                                    <p class="mb-0">Abertas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.concluidas }}</h3>
+                                    <p class="mb-0">Concluídas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.em_andamento }}</h3>
+                                    <p class="mb-0">Em Andamento</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.agendadas }}</h3>
+                                    <p class="mb-0">Agendadas</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Cartão de Ações Rápidas -->
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Ações Rápidas</h5>
+                </div>
+                <div class="card-body">
+                    <div class="d-grid gap-2">
+                        <a href="#" class="btn btn-outline-primary">
+                            <i class="bi bi-file-earmark-text"></i> Gerar Relatório
+                        </a>
+                        <a href="{{ url_for('listar_usuarios') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-people"></i> Gerenciar Usuários
+                        <a href="{{ url_for('admin_configuracoes') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-gear"></i> Configurações
+                        </a>
+                        <a href="{{ url_for('abrir_os') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-pencil-square"></i> Abrir OS
+                        </a>
+                        <a href="{{ url_for('listar_registros_diretos') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-clipboard-data-fill"></i>Registro de Manutenção
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Lista Completa de OS -->
+    <div class="card">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">Todas as Ordens de Serviço</h5>
+            <a href="#" class="btn btn-sm btn-light">Exportar</a>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Equipamento</th>
+                            <th>Solicitante</th>
+                            <th>Data</th>
+                            <th>Prioridade</th>
+                            <th>Status</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for os in todas_os %}
+                        <tr>
+                            <td>{{ os.id }}</td>
+                            <td>{{ os.equipamento }}</td>
+                            <td>{{ os.solicitante_nome }}</td>
+                            <td>{{ os.data }}</td>
+                            <td>
+                                <span class="badge bg-{% if os.prioridade == 'urgente' %}danger{% elif os.prioridade == 'alta' %}warning{% else %}primary{% endif %}">
+                                    {{ os.prioridade }}
+                                </span>
+                            </td>
+                            <td>
+                                <span class="badge bg-{% if os.status == 'Concluída' %}success{% elif os.status == 'Aberta' %}warning{% else %}info{% endif %}">
+                                    {{ os.status }}
+                                </span>
+                            </td>
+                            <td>
+                                <a href="{{ url_for('detalhe_os_admin', id=os.id) }}" class="btn btn-sm btn-outline-primary">
+                                    Detalhes
+                                </a>
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr>
+                            <td colspan="7" class="text-center text-muted">Nenhuma ordem de serviço encontrada</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Adicione gráficos usando Chart.js se desejar -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Exemplo de gráfico - implemente conforme seus dados
+    const ctx = document.getElementById('myChart');
+    // ... código do gráfico ...
+</script>
+{% endblock %}
