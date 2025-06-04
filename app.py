@@ -1,11 +1,15 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash
-import sqlite3
 from datetime import datetime
-from flask import g
-import sqlite3
-import atexit
 from werkzeug.security import check_password_hash, generate_password_hash 
 from functools import wraps
+from flask import g
+from flask import send_file
+from flask import Flask, render_template, request, redirect, url_for, session, flash
+from openpyxl import Workbook
+from openpyxl.styles import Font, Alignment
+from openpyxl.utils import get_column_letter
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+import sqlite3
+import io
 
 
 def manutencao_required(f):
@@ -33,6 +37,131 @@ def close_db(e=None):
 
 app = Flask(__name__)
 app.secret_key = 'o8QYV$%7D&(q'
+
+@app.route('/admin/relatorio/os')
+def gerar_relatorio_os():
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado.', 'danger')
+        return redirect(url_for('login'))
+
+    try:
+        conn = get_db()
+        cursor = conn.cursor()
+
+        # Query para buscar todas as OS com informações relevantes
+        # Incluindo nome do solicitante e uma lista concatenada de técnicos participantes
+        # A subquery para técnicos participantes pode ser um pouco complexa em SQLite puro
+        # Vamos buscar os dados principais primeiro e depois os participantes por OS se necessário,
+        # ou usar uma query mais elaborada se o seu SQLite suportar bem GROUP_CONCAT com JOINs.
+
+        cursor.execute("""
+            SELECT 
+                os.id, os.equipamento, os.problema, os.prioridade, os.status,
+                os.data as data_abertura, os.inicio as data_inicio_reparo, os.fim as data_conclusao,
+                os.local, os.setor, os.solucao, os.tempo_reparo,
+                u_solicitante.nome as nome_solicitante,
+                u_tecnico_sistema.nome as nome_tecnico_sistema -- Usuário que agendou/iniciou no sistema
+            FROM ordens_servico os
+            LEFT JOIN usuarios u_solicitante ON os.solicitante_id = u_solicitante.id
+            LEFT JOIN usuarios u_tecnico_sistema ON os.tecnico_id = u_tecnico_sistema.id
+            ORDER BY os.id DESC
+        """)
+        ordens_servico = cursor.fetchall()
+
+        # Criar um Workbook Excel em memória
+        workbook = Workbook()
+        sheet = workbook.active
+        sheet.title = "Relatorio OS"
+
+        # Definir Cabeçalhos
+        headers = [
+            "ID OS", "Equipamento", "Problema", "Prioridade", "Status", 
+            "Data Abertura", "Data Início Reparo", "Data Conclusão",
+            "Local", "Setor", "Solicitante", "Técnico Sistema (Agendou/Iniciou)",
+            "Técnicos Participantes (Reparo)", "Solução", "Tempo Reparo (min)"
+        ]
+        sheet.append(headers)
+
+        # Estilizar Cabeçalhos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="004085", end_color="004085", fill_type="solid") # Azul escuro
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        thin_border = Border(left=Side(style='thin'), 
+                             right=Side(style='thin'), 
+                             top=Side(style='thin'), 
+                             bottom=Side(style='thin'))
+
+        for col_num, header_title in enumerate(headers, 1):
+            cell = sheet.cell(row=1, column=col_num)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+            # Ajustar largura da coluna (aproximado)
+            column_letter = get_column_letter(col_num)
+            sheet.column_dimensions[column_letter].width = 20 if len(header_title) < 15 else len(header_title) * 1.2
+
+
+        # Popular dados das OS
+        for row_num, os_data_row in enumerate(ordens_servico, 2): # Começa da linha 2
+            os_dict = dict(os_data_row) # Converter para dicionário para fácil acesso
+
+            # Buscar técnicos participantes para esta OS específica
+            cursor.execute("""
+                SELECT t.nome
+                FROM participantes_os po
+                JOIN tecnicos t ON po.tecnico_ref_id = t.id
+                WHERE po.os_id = ?
+                ORDER BY t.nome
+            """, (os_dict['id'],))
+            participantes_db = cursor.fetchall()
+            nomes_participantes = ", ".join([p['nome'] for p in participantes_db]) if participantes_db else "N/A"
+
+            row_data = [
+                os_dict.get('id'),
+                os_dict.get('equipamento'),
+                os_dict.get('problema'),
+                os_dict.get('prioridade'),
+                os_dict.get('status'),
+                os_dict.get('data_abertura'),
+                os_dict.get('data_inicio_reparo', ''), # Default para string vazia se None
+                os_dict.get('data_conclusao', ''),   # Default para string vazia se None
+                os_dict.get('local', ''),
+                os_dict.get('setor', ''),
+                os_dict.get('nome_solicitante', ''),
+                os_dict.get('nome_tecnico_sistema', ''),
+                nomes_participantes,
+                os_dict.get('solucao', ''),
+                os_dict.get('tempo_reparo', '')
+            ]
+            sheet.append(row_data)
+            
+            # Aplicar borda às células de dados
+            for col_num in range(1, len(headers) + 1):
+                sheet.cell(row=row_num, column=col_num).border = thin_border
+
+
+        # Salvar o workbook em um stream de bytes
+        excel_stream = io.BytesIO()
+        workbook.save(excel_stream)
+        excel_stream.seek(0) # Voltar ao início do stream
+
+        # conn.close() # Gerenciado pelo teardown_appcontext
+
+        # Nome do arquivo para download
+        filename = f"relatorio_os_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+
+        return send_file(
+            excel_stream,
+            as_attachment=True,
+            download_name=filename,
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+
+    except Exception as e:
+        print(f"Erro ao gerar relatório OS: {str(e)}") # Log do erro no console do Flask
+        flash(f'Erro ao gerar relatório: {str(e)}', 'danger')
+        return redirect(url_for('admin_dashboard'))
 
 # Rota inicial
 @app.route('/')
@@ -695,49 +824,97 @@ def novo_registro_direto():
     )
 
 # --- ADMIN ---
-@app.route('/admin')
+@app.route('/admin') # Ou a URL que você usa para o admin_dashboard
 def admin_dashboard():
-    if session.get('tipo') not in ['admin','master-admin']:
-        flash('Acesso não autorizado ao dashboard administrativo.','danger')
+    if session.get('tipo') not in ['admin', 'master-admin']:
+        flash('Acesso não autorizado ao dashboard administrativo.', 'danger')
         return redirect(url_for('login'))
-
+    
     conn = get_db()
     cursor = conn.cursor()
     
-    # Busca estatísticas com tratamento para valores nulos
-    cursor.execute("""
-        SELECT 
-            COUNT(*) AS total,
-            AVG(CASE WHEN tempo_reparo IS NOT NULL THEN tempo_reparo ELSE 0 END) AS media,
-            SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) AS concluidas,
-            SUM(CASE WHEN status = 'Aberta' THEN 1 ELSE 0 END) AS abertas,
-            SUM(CASE WHEN status = 'Em andamento' THEN 1 ELSE 0 END) AS em_andamento,
-            SUM(CASE WHEN status = 'Agendada' THEN 1 ELSE 0 END) AS agendadas
-        FROM ordens_servico
-    """)
-    stats = cursor.fetchone()
-    
-    # Busca todas as OSs para exibição
-    cursor.execute("""
-        SELECT os.*, u.nome as solicitante_nome
-        FROM ordens_servico os
-        JOIN usuarios u ON os.solicitante_id = u.id
-        ORDER BY os.data DESC
-        LIMIT 50
-    """)
-    todas_os = cursor.fetchall()
-    
-    conn.close()
+    try:
+        # Estatísticas de Ordens de Serviço (OS)
+        cursor.execute("""
+            SELECT 
+                COUNT(*) AS total,
+                SUM(CASE WHEN status = 'Concluída' THEN 1 ELSE 0 END) AS concluidas,
+                SUM(CASE WHEN status = 'Aberta' THEN 1 ELSE 0 END) AS abertas,
+                SUM(CASE WHEN status = 'Em andamento' THEN 1 ELSE 0 END) AS em_andamento,
+                SUM(CASE WHEN status = 'Agendada' THEN 1 ELSE 0 END) AS agendadas,
+                AVG(CASE WHEN status = 'Concluída' AND tempo_reparo IS NOT NULL THEN tempo_reparo ELSE NULL END) AS media_tempo
+            FROM ordens_servico
+        """)
+        stats_os_data = cursor.fetchone()
 
-    # Garante que a média será um número válido
-    stats_dict = dict(stats)
-    stats_dict['media'] = stats_dict['media'] if stats_dict['media'] is not None else 0
+        stats_os_dict = dict(stats_os_data) if stats_os_data else {
+            'total': 0, 'concluidas': 0, 'abertas': 0, 
+            'em_andamento': 0, 'agendadas': 0, 'media_tempo': 0.0
+        }
+        if stats_os_dict['media_tempo'] is None: # Tratar None para média
+            stats_os_dict['media_tempo'] = 0.0
 
-    return render_template(
-        'administrador/dashboard.html',
-        stats=stats_dict,
-        todas_os=todas_os
-    )
+        # Estatísticas de Registros de Manutenção Direta
+        cursor.execute("""
+            SELECT 
+                COUNT(*) AS total_registros,
+                SUM(CASE WHEN status = 'Pendente Aprovacao' THEN 1 ELSE 0 END) AS pendente_aprovacao,
+                SUM(CASE WHEN status = 'Concluido' THEN 1 ELSE 0 END) AS concluidos_registros,
+                SUM(CASE WHEN status = 'Cancelado' THEN 1 ELSE 0 END) AS cancelados_registros
+            FROM registros_manutencao_direta
+        """)
+        stats_registros_data = cursor.fetchone()
+        
+        stats_registros_dict = dict(stats_registros_data) if stats_registros_data else {
+            'total_registros': 0, 'pendente_aprovacao': 0, 
+            'concluidos_registros': 0, 'cancelados_registros': 0
+        }
+        # Garante que os campos existam mesmo que a query não retorne nada ou algum SUM seja NULL
+        stats_registros_dict.setdefault('total_registros', 0)
+        stats_registros_dict.setdefault('pendente_aprovacao', 0)
+        stats_registros_dict.setdefault('concluidos_registros', 0)
+        stats_registros_dict.setdefault('cancelados_registros', 0)
+
+
+        # Últimas Ordens de Serviço para exibição
+        cursor.execute("""
+            SELECT os.*, u.nome as solicitante_nome
+            FROM ordens_servico os
+            JOIN usuarios u ON os.solicitante_id = u.id
+            ORDER BY os.data DESC
+            LIMIT 10 
+        """)
+        todas_os = cursor.fetchall()
+        
+        # Combina as estatísticas
+        stats_completas = {
+            'os': stats_os_dict,
+            'registros_diretos': stats_registros_dict
+        }
+
+        return render_template(
+            'administrador/dashboard.html', 
+            stats=stats_completas, # Passa o dicionário combinado
+            todas_os=todas_os
+        )
+
+    except sqlite3.Error as e:
+        print(f"Erro de banco de dados no admin_dashboard: {str(e)}")
+        flash(f'Erro ao carregar dados do dashboard: {str(e)}', 'danger')
+        # Em caso de erro, pode ser útil ter um dicionário de stats vazio para evitar erros no template
+        stats_vazias = {
+            'os': {'total': 0, 'concluidas': 0, 'abertas': 0, 'em_andamento': 0, 'agendadas': 0, 'media_tempo': 0.0},
+            'registros_diretos': {'total_registros': 0, 'pendente_aprovacao': 0, 'concluidos_registros': 0, 'cancelados_registros': 0}
+        }
+        return render_template('administrador/dashboard.html', stats=stats_vazias, todas_os=[])
+    except Exception as e:
+        print(f"Erro geral no admin_dashboard: {str(e)}")
+        flash(f'Ocorreu um erro inesperado: {str(e)}', 'danger')
+        stats_vazias = { # Estrutura de fallback
+            'os': {'total': 0, 'concluidas': 0, 'abertas': 0, 'em_andamento': 0, 'agendadas': 0, 'media_tempo': 0.0},
+            'registros_diretos': {'total_registros': 0, 'pendente_aprovacao': 0, 'concluidos_registros': 0, 'cancelados_registros': 0}
+        }
+        return render_template('administrador/dashboard.html', stats=stats_vazias, todas_os=[])
 
 @app.route('/admin/os/<int:id_os>')
 def detalhe_os_admin(id_os):
@@ -839,15 +1016,26 @@ def listar_registros_diretos():
     conn = get_db()
     cursor = conn.cursor()
     
-    cursor.execute("""
+    status_filtro = request.args.get('status_filtro') # Pega o filtro da URL
+    
+    query = """
         SELECT rmd.*, u_criador.nome as nome_criador
         FROM registros_manutencao_direta rmd
         JOIN usuarios u_criador ON rmd.criado_por_id = u_criador.id
-        ORDER BY rmd.data_registro DESC
-    """)
+    """
+    params = []
+    if status_filtro:
+        query += " WHERE rmd.status = ?"
+        params.append(status_filtro)
+    
+    query += " ORDER BY rmd.data_registro DESC"
+    
+    cursor.execute(query, params)
     registros = cursor.fetchall()
 
-    return render_template('administrador/listar_registros_diretos.html', registros=registros)
+    return render_template('administrador/listar_registros_diretos.html', 
+                           registros=registros, 
+                           status_filtrado=status_filtro)
 
 @app.route('/admin/registros_manutencao/processar/<int:id_registro>', methods=['POST'])
 def processar_registro_direto(id_registro):

@@ -18,7 +18,7 @@
                         <div class="col-6">
                             <div class="card bg-light mb-3">
                                 <div class="card-body text-center">
-                                    <h3>{{ stats.total|default(0) }}</h3>
+                                    <h3>{{ stats.os.total|default(0) }}</h3>
                                     <p class="text-muted mb-0">Total de OS</p>
                                 </div>
                             </div>
@@ -26,7 +26,7 @@
                         <div class="col-6">
                             <div class="card bg-light mb-3">
                                 <div class="card-body text-center">
-                                    <h3>{{ "%.1f"|format(stats.media_tempo|default(0.0)) }}</h3>
+                                    <h3>{{ "%.1f"|format(stats.os.media_tempo|default(0.0)) }}</h3>
                                     <p class="text-muted mb-0">Média Tempo (min)</p>
                                 </div>
                             </div>
@@ -34,7 +34,7 @@
                         <div class="col-6">
                             <div class="card bg-light mb-3">
                                 <div class="card-body text-center">
-                                    <h3>{{ stats.abertas|default(0) }}</h3>
+                                    <h3>{{ stats.os.abertas|default(0) }}</h3>
                                     <p class="mb-0">Abertas</p>
                                 </div>
                             </div>
@@ -42,7 +42,7 @@
                         <div class="col-6">
                             <div class="card bg-light mb-3">
                                 <div class="card-body text-center">
-                                    <h3>{{ stats.concluidas|default(0) }}</h3>
+                                    <h3>{{ stats.os.concluidas|default(0) }}</h3>
                                     <p class="mb-0">Concluídas</p>
                                 </div>
                             </div>
@@ -50,7 +50,7 @@
                         <div class="col-6">
                             <div class="card bg-light mb-3">
                                 <div class="card-body text-center">
-                                    <h3>{{ stats.em_andamento|default(0) }}</h3>
+                                    <h3>{{ stats.os.em_andamento|default(0) }}</h3>
                                     <p class="mb-0">Em Andamento</p>
                                 </div>
                             </div>
@@ -58,8 +58,24 @@
                         <div class="col-6">
                             <div class="card bg-light mb-3">
                                 <div class="card-body text-center">
-                                    <h3>{{ stats.agendadas|default(0) }}</h3>
+                                    <h3>{{ stats.os.agendadas|default(0) }}</h3>
                                     <p class="mb-0">Agendadas</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.registros_diretos.total_registros|default(0) }}</h3>
+                                    <p class="mb-0">Total Registros de Manutenção</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="card bg-light mb-3">
+                                <div class="card-body text-center">
+                                    <h3>{{ stats.registros_diretos.pendente_aprovacao|default(0) }}</h3>
+                                    <p class="mb-0">Total Registros Concluídas</p>
                                 </div>
                             </div>
                         </div>
@@ -76,8 +92,9 @@
                 </div>
                 <div class="card-body">
                     <div class="d-grid gap-2">
-                        <a href="#" class="btn btn-outline-primary disabled" title="Funcionalidade em desenvolvimento">
-                            <i class="bi bi-file-earmark-text"></i> Gerar Relatório (Em breve)
+                        {# --- BOTÃO MODIFICADO AQUI --- #}
+                        <a href="{{ url_for('gerar_relatorio_os') }}" class="btn btn-outline-primary">
+                            <i class="bi bi-file-earmark-excel-fill"></i> Gerar Relatório de OS
                         </a>
                         <a href="{{ url_for('listar_usuarios') }}" class="btn btn-outline-primary">
                             <i class="bi bi-people"></i> Gerenciar Usuários
@@ -101,7 +118,7 @@
     <div class="card">
         <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
             <h5 class="mb-0">Últimas Ordens de Serviço</h5>
-            <a href="#" class="btn btn-sm btn-light disabled" title="Funcionalidade em desenvolvimento">Exportar (Em breve)</a>
+            {# <a href="#" class="btn btn-sm btn-light disabled" title="Funcionalidade em desenvolvimento">Exportar (Em breve)</a> #}
         </div>
         <div class="card-body">
             <div class="table-responsive">
@@ -118,7 +135,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for os_item in todas_os %} {# Renomeado 'os' para 'os_item' para evitar conflito com o objeto 'os' de uma página de detalhe #}
+                        {% for os_item in todas_os %}
                         <tr>
                             <td>#{{ os_item.id }}</td>
                             <td>{{ os_item.equipamento }}</td>
@@ -142,7 +159,6 @@
                                 </span>
                             </td>
                             <td>
-                                <!-- CORREÇÃO AQUI -->
                                 <a href="{{ url_for('detalhe_os_admin', id_os=os_item.id) }}" class="btn btn-sm btn-outline-primary">
                                     Detalhes
                                 </a>
@@ -164,13 +180,4 @@
 
 {% block scripts %}
 {{ super() }}
-<!-- Adicione gráficos usando Chart.js se desejar -->
-<!-- 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<script>
-    // Exemplo de gráfico - implemente conforme seus dados
-    // const ctx = document.getElementById('myChart');
-    // ... código do gráfico ...
-</script>
--->
 {% endblock %}
