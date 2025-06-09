@@ -60,7 +60,7 @@
                         </li>
                         {% if tecnico %} {# Técnico responsável principal, se houver #}
                         <li class="list-group-item ps-0">
-                            <strong>Técnico Responsável (Inicial):</strong> {{ tecnico.nome }}
+                            <strong>Executante Responsável (Inicial):</strong> {{ tecnico.nome }}
                         </li>
                         {% endif %}
                         {% if os.local %}
@@ -106,7 +106,7 @@
                 </div>
                 
                 <div class="mb-3">
-                    <label class="form-label">Técnicos Participantes <span class="text-danger">*</span></label>
+                    <label class="form-label">Executantes Participantes <span class="text-danger">*</span></label>
                     <div id="tecnicos_participantes_checkbox_group" class="border rounded p-2" style="max-height: 200px; overflow-y: auto;">
                     {% if todos_tecnicos_manutencao %}
                         {% for tecnico_manutencao in todos_tecnicos_manutencao %}
@@ -126,10 +126,10 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <p class="text-muted mb-0">Nenhum técnico de manutenção cadastrado/disponível.</p>
+                        <p class="text-muted mb-0">Nenhum executante de manutenção cadastrado/disponível.</p>
                     {% endif %}
                 </div>
-                <small class="form-text text-muted">Marque todos os técnicos que participaram. O técnico logado é pré-selecionado.</small>
+                <small class="form-text text-muted">Marque todos os executantes que participaram. O executante logado é pré-selecionado.</small>
                 </div>
                 <div class="d-flex justify-content-end mt-4">
                 <a href="{{ url_for('agendar_os', id_os=os.id) }}" class="btn btn-outline-primary me-2">

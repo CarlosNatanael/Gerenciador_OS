@@ -110,7 +110,7 @@
             {# Exibição dos técnicos participantes individuais #}
             {% if participantes %}
             <hr class="my-4">
-            <h6>Equipe de Técnicos Participantes</h6>
+            <h6>Equipe de Executantes Participantes</h6>
             <div class="d-flex flex-wrap gap-2">
                 {% for part in participantes %}
                 <div class="border rounded p-2 bg-light mb-2">
@@ -130,7 +130,7 @@
             </div>
             {% elif os.status == 'Concluída' %}
              <hr class="my-4">
-             <h6>Equipe de Técnicos Participantes</h6>
+             <h6>Equipe de Executantes Participantes</h6>
              <p class="text-muted">Nenhum técnico participante registrado para esta OS.</p>
             {% endif %}
 
